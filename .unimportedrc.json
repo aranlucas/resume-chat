@@ -1,0 +1,24 @@
+{
+  "entry": ["src/app/**/*.{ts,tsx}", "tailwind.config.js"],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/*.tests.{js,jsx,ts,tsx}",
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.spec.{js,jsx,ts,tsx}",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/*.d.ts"
+  ],
+  "ignoreUnimported": [],
+  "ignoreUnused": [
+    "@ianvs/prettier-plugin-sort-imports",
+    "@types/node",
+    "autoprefixer",
+    "eslint-config-next",
+    "eslint-config-prettier",
+    "eslint-plugin-prettier",
+    "eslint-plugin-react",
+    "eslint-plugin-tailwindcss"
+  ],
+  "ignoreUnresolved": []
+}

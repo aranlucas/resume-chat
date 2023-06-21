@@ -9,12 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { useChat } from "ai/react";
 import { useRef } from "react";
 
-type Message = {
-  message: string;
-  self: boolean;
-};
 export default function Home() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   const formRef = useRef<HTMLFormElement>(null);
 

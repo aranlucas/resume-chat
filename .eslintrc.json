@@ -1,15 +1,29 @@
 {
   "$schema": "https://json.schemastore.org/eslintrc",
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
   "extends": [
+    "plugin:react/recommended",
+    "standard-with-typescript",
     "next/core-web-vitals",
     "prettier",
     "plugin:tailwindcss/recommended"
   ],
-  "plugins": ["tailwindcss", "prettier"],
+  "overrides": [],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": ["./tsconfig.json"]
+  },
+  "plugins": ["react", "tailwindcss", "prettier"],
   "rules": {
     "@next/next/no-html-link-for-pages": "off",
-    "react/jsx-key": "off",
-    "tailwindcss/no-custom-classname": "off"
+    "tailwindcss/no-custom-classname": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-non-null-assertion": "off"
   },
   "settings": {
     "tailwindcss": {

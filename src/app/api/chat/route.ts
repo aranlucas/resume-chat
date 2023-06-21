@@ -1,10 +1,14 @@
 import { PineconeClient } from "@pinecone-database/pinecone";
-import { StreamingTextResponse, LangChainStream, Message } from "ai";
+import { LangChainStream, StreamingTextResponse, type Message } from "ai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { OpenAI } from "langchain/llms/openai";
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
-import { HumanChatMessage, AIChatMessage } from "langchain/schema";
+import {
+  AIChatMessage,
+  HumanChatMessage,
+  SystemChatMessage,
+} from "langchain/schema";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 
 export const runtime = "edge";
@@ -20,9 +24,9 @@ const initPineconeClient = async () => {
 };
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages } = (await req.json()) as { messages: Message[] };
 
-  if (!pinecone) {
+  if (pinecone == null) {
     await initPineconeClient();
   }
 
@@ -33,11 +37,15 @@ export async function POST(req: Request) {
     { pineconeIndex }
   );
 
-  const pastMessages = (messages as Message[]).map((m) =>
-    m.role == "user"
-      ? new HumanChatMessage(m.content)
-      : new AIChatMessage(m.content)
-  );
+  const pastMessages = messages.map((m) => {
+    if (m.role === "user") {
+      return new HumanChatMessage(m.content);
+    }
+    if (m.role === "system") {
+      return new SystemChatMessage(m.content);
+    }
+    return new AIChatMessage(m.content);
+  });
 
   const { stream, handlers } = LangChainStream();
 

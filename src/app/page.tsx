@@ -15,7 +15,7 @@ export default function Home() {
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <main className="flex h-screen w-full flex-col">
+    <main className="flex h-[calc(100dvh)] w-full flex-col">
       <NavBar />
       <Separator />
       <div

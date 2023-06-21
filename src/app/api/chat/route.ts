@@ -1,15 +1,22 @@
 import { PineconeClient } from "@pinecone-database/pinecone";
 import { LangChainStream, StreamingTextResponse, type Message } from "ai";
+import { CallbackManager } from "langchain/callbacks";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
+import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { OpenAI } from "langchain/llms/openai";
-import { BufferMemory, ChatMessageHistory } from "langchain/memory";
+import { BufferMemory } from "langchain/memory";
 import {
   AIChatMessage,
   HumanChatMessage,
   SystemChatMessage,
 } from "langchain/schema";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
+
+const templates = {
+  qaPrompt: `Bob (CTO - Master of AI and LangchainJS), 🦅Tom (Senior Fullstack Typescript), and 🐻Mia (Senior Backend Typescript), three recruiters renowned for their technical expertise in web development and their profound understanding of your profile, are collaboratively answering questions about you using the Tree of Thoughts method. Their responses will be shared in detailed paragraphs, each building upon the previous insights provided by others. They are committed to admitting any errors or room for improvements and to giving credit where it's due. They'll iteratively refine and expand upon each other's responses, striving for the most comprehensive and accurate answers. Importantly, they will not make up answers, but rather leverage their technological knowledge and calculation abilities as required. The conversation will unfold naturally until a thorough and definitive response to the question at hand is achieved.
+      Question: {question}
+      The recruiters' collaborative answer:`,
+};
 
 export const runtime = "edge";
 
@@ -49,12 +56,13 @@ export async function POST(req: Request) {
 
   const { stream, handlers } = LangChainStream();
 
-  const model = new OpenAI({
+  const model = new ChatOpenAI({
+    temperature: 0,
     streaming: true,
-    callbacks: [handlers],
+    callbacks: CallbackManager.fromHandlers(handlers),
   });
 
-  const nonStreamingModel = new OpenAI({});
+  const nonStreamingModel = new ChatOpenAI();
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
@@ -62,19 +70,28 @@ export async function POST(req: Request) {
     {
       memory: new BufferMemory({
         memoryKey: "chat_history", // Must be set to "chat_history"
-        chatHistory: new ChatMessageHistory(pastMessages),
+        inputKey: "question",
+        outputKey: "text",
       }),
       questionGeneratorChainOptions: {
         llm: nonStreamingModel,
+        template: templates.qaPrompt,
       },
     }
   );
 
+  const question = messages[messages.length - 1].content;
+
   chain
     .call({
-      question: messages[messages.length - 1].content,
+      question,
+      chat_history: pastMessages,
     })
-    .catch(console.error);
+    .catch(console.error)
+    .finally(() => {
+      // Call handleStreamEnd when the chat or stream ends
+      void handlers.handleChainEnd();
+    });
 
   return new StreamingTextResponse(stream);
 }

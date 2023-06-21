@@ -10,7 +10,8 @@ import { useChat } from "ai/react";
 import { useRef } from "react";
 
 export default function Home() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat();
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -38,12 +39,17 @@ export default function Home() {
           />
           <div className="inset-y-0 right-0 items-center">
             <Button
+              disabled={isLoading}
               variant="secondary"
               type="submit"
               className="inline-flex items-center justify-center rounded-lg px-4 py-3 transition duration-500 ease-in-out focus:outline-none"
             >
               <span className="font-bold">Send</span>
-              <Icons.send className="ml-2 h-6 w-6 rotate-45" />
+              {isLoading ? (
+                <Icons.loader className="ml-2 h-6 w-6 rotate-45 animate-spin fill-blue-600 dark:text-gray-600" />
+              ) : (
+                <Icons.send className="ml-2 h-6 w-6 rotate-45" />
+              )}
             </Button>
           </div>
         </form>

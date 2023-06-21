@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Icons } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
 const NavBar = () => {
@@ -6,7 +8,13 @@ const NavBar = () => {
       <h2 className="sm:truncate-none flex flex-row space-x-4 truncate text-lg font-semibold">
         Ask Lucas
       </h2>
-      <ThemeToggle />
+      <div className="flex items-center justify-end space-x-2">
+        <Link href="https://github.com/aranlucas/resume-chat">
+          <Icons.gitHub className="ml-2 h-6 w-6" />
+        </Link>
+
+        <ThemeToggle />
+      </div>
     </div>
   );
 };

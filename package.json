@@ -29,7 +29,6 @@
     "lucide-react": "^0.246.0",
     "next": "^13.4.6",
     "next-themes": "^0.2.1",
-    "postcss": "^8.4.24",
     "prettier": "^2.8.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -45,6 +44,8 @@
     "eslint-plugin-n": "^15.7.0",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-react": "^7.32.2",
+    "postcss": "^8.4.24",
+    "postcss-100vh-fix": "^1.0.2",
     "typescript": "^5.1.3"
   }
 }

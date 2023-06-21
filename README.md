@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Resume Chat
+
+This application was created during my recent hiring experience. I have a separate repository where I use LangChain to load my resume and a question bank of interview questions which then get fed to a vector database (PineCone). For each request, we do a "similarity" search on the DB, then feed that as context to ChatGPT and answers the question.
+
+This should be pretty close to what I would answer if I had a good vector database inside my head.
 
 ## Getting Started
 
@@ -18,17 +22,37 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-## Learn More
+## FAQ
 
-To learn more about Next.js, take a look at the following resources:
+#### How does it work?
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+There is 2 parts to this project
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+1. The loader
+2. Chat API
 
-## Deploy on Vercel
+The loader (configured in a separate repo) works the following way
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```mermaid
+sequenceDiagram
+Script->>LangChain: Load all documents
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+LangChain->>LangChain: Read, Split, transform to embeddings
+
+LangChain->>PineCone: Insert new embededdings into DB
+
+PineCone->>Script: Return files in Index
+```
+
+Chat API
+
+```mermaid
+sequenceDiagram
+API->>PineCone: Find the closest documents related to this question
+
+PineCone->>API: returns K similar documents
+
+API->>ChatGPT: With added context, answer the question
+
+ChatGPT->>API: Return streaming response to client
+```

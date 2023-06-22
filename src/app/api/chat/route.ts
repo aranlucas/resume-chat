@@ -1,6 +1,5 @@
 import { PineconeClient } from "@pinecone-database/pinecone";
 import { LangChainStream, StreamingTextResponse, type Message } from "ai";
-import { CallbackManager } from "langchain/callbacks";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
@@ -63,7 +62,14 @@ export async function POST(req: Request) {
   const model = new ChatOpenAI({
     temperature: 0,
     streaming: true,
-    callbacks: CallbackManager.fromHandlers(handlers),
+    callbacks: [
+      {
+        ...handlers,
+        handleLLMEnd: async () => {
+          await handlers.handleChainEnd();
+        },
+      },
+    ],
   });
 
   const nonStreamingModel = new ChatOpenAI();
@@ -91,11 +97,7 @@ export async function POST(req: Request) {
       question,
       chat_history: pastMessages,
     })
-    .catch(console.error)
-    .finally(() => {
-      // Call handleStreamEnd when the chat or stream ends
-      void handlers.handleChainEnd();
-    });
+    .catch(console.error);
 
   return new StreamingTextResponse(stream);
 }

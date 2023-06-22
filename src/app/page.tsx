@@ -49,12 +49,12 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => {
-                      setInput("What projects has Lucas worked on?");
+                      setInput("What skills does Lucas have?");
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
                     <Icons.arrow className="mr-2 h-4 w-4 text-muted-foreground" />
-                    What projects has Lucas worked on?
+                    What skills does Lucas have?
                   </button>
                   <button
                     onClick={() => {

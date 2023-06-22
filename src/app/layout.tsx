@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import "@/styles/globals.css";
 import NavBar from "@/components/navbar";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
+import { Analytics } from "@vercel/analytics/react";
 import { Inter } from "next/font/google";
 import { Providers } from "./providers";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
           </main>
           <TailwindIndicator />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );

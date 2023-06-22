@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   Loader,
   Moon,
   Send,
@@ -16,6 +17,7 @@ export const Icons = {
   send: Send,
   twitter: Twitter,
   loader: Loader,
+  arrow: ArrowRight,
   logo: (props: LucideProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
       <path

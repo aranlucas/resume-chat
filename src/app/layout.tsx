@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import "@/styles/globals.css";
+import NavBar from "@/components/navbar";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { Inter } from "next/font/google";
 import { Providers } from "./providers";
@@ -19,13 +20,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={cn(
-          "bg-background font-sans antialiased",
-          inter.className
-        )}
+        className={cn("bg-muted/50 font-sans antialiased", inter.className)}
       >
         <Providers>
-          {children}
+          <main className="flex h-[calc(100dvh)] w-full flex-col">
+            <NavBar />
+            {children}
+          </main>
           <TailwindIndicator />
         </Providers>
       </body>

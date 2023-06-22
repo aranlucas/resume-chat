@@ -1,5 +1,6 @@
+import { LangChainStream } from "@/lib/LangChainStream";
 import { PineconeClient } from "@pinecone-database/pinecone";
-import { LangChainStream, StreamingTextResponse, type Message } from "ai";
+import { StreamingTextResponse, type Message } from "ai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
@@ -62,14 +63,6 @@ export async function POST(req: Request) {
   const model = new ChatOpenAI({
     temperature: 0,
     streaming: true,
-    callbacks: [
-      {
-        ...handlers,
-        handleLLMEnd: async () => {
-          await handlers.handleChainEnd();
-        },
-      },
-    ],
   });
 
   const nonStreamingModel = new ChatOpenAI();
@@ -93,10 +86,13 @@ export async function POST(req: Request) {
   const question = messages[messages.length - 1].content;
 
   chain
-    .call({
-      question,
-      chat_history: pastMessages,
-    })
+    .call(
+      {
+        question,
+        chat_history: pastMessages,
+      },
+      [handlers]
+    )
     .catch(console.error);
 
   return new StreamingTextResponse(stream);

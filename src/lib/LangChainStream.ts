@@ -4,16 +4,22 @@ export function LangChainStream(callbacks?: AIStreamCallbacks) {
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
-  const runMap = new Set();
+  const runs = new Set();
 
-  const handleError = async (e: any, runId: string) => {
-    runMap.delete(runId);
+  const handleError = async (e: Error, runId: string) => {
+    runs.delete(runId);
     await writer.ready;
     await writer.abort(e);
   };
 
-  const endStream = async () => {
-    if (runMap.size === 0) {
+  const handleStart = (runId: string) => {
+    runs.add(runId);
+  };
+
+  const handleEnd = async (runId: string) => {
+    runs.delete(runId);
+
+    if (runs.size === 0) {
       await writer.ready;
       await writer.close();
     }
@@ -22,61 +28,52 @@ export function LangChainStream(callbacks?: AIStreamCallbacks) {
   return {
     stream: stream.readable.pipeThrough(createCallbacksTransformer(callbacks)),
     handlers: {
-      handleLLMStart: async (_llm: any, _prompts: string[], runId: string) => {
-        runMap.add(runId);
-      },
       handleLLMNewToken: async (token: string) => {
         await writer.ready;
         await writer.write(token);
       },
-      handleLLMError: async (e: Error, runId: string) => {
-        await handleError(e, runId);
+      handleLLMStart: async (_llm: any, _prompts: string[], runId: string) => {
+        handleStart(runId);
       },
       handleLLMEnd: async (_output: any, runId: string) => {
-        runMap.delete(runId);
-        await endStream();
+        await handleEnd(runId);
+      },
+      handleLLMError: async (e: Error, runId: string) => {
+        await handleError(e, runId);
       },
       handleChatModelStart: async (
         _llm: any,
         _messages: any,
         runId: string
       ) => {
-        runMap.add(runId);
+        handleStart(runId);
       },
       handleChatModelEnd: async (_output: any, runId: string) => {
-        runMap.delete(runId);
-
-        await endStream();
+        await handleEnd(runId);
       },
       handleChainStart: async (_chain: any, _inputs: any, runId: string) => {
-        runMap.add(runId);
+        handleStart(runId);
+      },
+      handleChainEnd: async (_outputs: any, runId: string) => {
+        await handleEnd(runId);
       },
       handleChainError: async (e: Error, runId: string) => {
         await handleError(e, runId);
       },
-      handleChainEnd: async (_outputs: any, runId: string) => {
-        runMap.delete(runId);
-
-        await endStream();
-      },
       handleToolStart: async (_tool: any, _input: string, runId: string) => {
-        runMap.add(runId);
+        handleStart(runId);
+      },
+      handleToolEnd: async (_output: string, runId: string) => {
+        await handleEnd(runId);
       },
       handleToolError: async (e: Error, runId: string) => {
         await handleError(e, runId);
       },
-      handleToolEnd: async (_output: string, runId: string) => {
-        runMap.delete(runId);
-
-        await endStream();
-      },
       handleAgentAction: async (_action: any, runId: string) => {
-        runMap.add(runId);
+        handleStart(runId);
       },
       handleAgentEnd: async (_output: any, runId: string) => {
-        runMap.delete(runId);
-
-        await endStream();
+        await handleEnd(runId);
       },
     },
   };

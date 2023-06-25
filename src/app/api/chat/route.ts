@@ -4,7 +4,6 @@ import { StreamingTextResponse, type Message } from "ai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { BufferMemory } from "langchain/memory";
 import {
   AIChatMessage,
   HumanChatMessage,
@@ -61,7 +60,7 @@ export async function POST(req: Request) {
   const { stream, handlers } = LangChainStream();
 
   const model = new ChatOpenAI({
-    temperature: 0,
+    temperature: 0.2,
     streaming: true,
   });
 
@@ -69,13 +68,9 @@ export async function POST(req: Request) {
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
-    vectorStore.asRetriever(1),
+    vectorStore.asRetriever(5),
     {
-      memory: new BufferMemory({
-        memoryKey: "chat_history", // Must be set to "chat_history"
-        inputKey: "question",
-        outputKey: "text",
-      }),
+      verbose: true,
       questionGeneratorChainOptions: {
         llm: nonStreamingModel,
         template: templates.qaPrompt,

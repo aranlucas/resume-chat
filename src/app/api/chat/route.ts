@@ -18,7 +18,7 @@ const ChatSchema = z.object({
     z.object({
       role: z.enum(["system", "user", "assistant"]),
       content: z.string(),
-      id: z.string(),
+      id: z.string().optional(),
       createdAt: z.date().optional(),
     })
   ),
@@ -86,7 +86,6 @@ export async function POST(req: Request) {
       model,
       vectorStore.asRetriever(2),
       {
-        verbose: true,
         questionGeneratorChainOptions: {
           llm: nonStreamingModel,
           template: templates.qaPrompt,

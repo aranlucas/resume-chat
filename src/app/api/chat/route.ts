@@ -1,6 +1,6 @@
 import { LangChainStream } from "@/lib/LangChainStream";
 import { PineconeClient } from "@pinecone-database/pinecone";
-import { StreamingTextResponse, type Message } from "ai";
+import { StreamingTextResponse } from "ai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
@@ -10,6 +10,19 @@ import {
   SystemChatMessage,
 } from "langchain/schema";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
+import z from "zod";
+
+// { messages: [ { role: 'user', content: 'hi' } ] }
+const ChatSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.enum(["system", "user", "assistant"]),
+      content: z.string(),
+      id: z.string(),
+      createdAt: z.date().optional(),
+    })
+  ),
+});
 
 const templates = {
   qaPrompt: `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
@@ -34,61 +47,71 @@ const initPineconeClient = async () => {
 };
 
 export async function POST(req: Request) {
-  const { messages } = (await req.json()) as { messages: Message[] };
+  const body = await req.json();
 
-  if (pinecone == null) {
-    await initPineconeClient();
-  }
+  try {
+    const { messages } = ChatSchema.parse(body);
 
-  const pineconeIndex = pinecone!.Index(process.env.PINECONE_INDEX_NAME!);
-
-  const vectorStore = await PineconeStore.fromExistingIndex(
-    new OpenAIEmbeddings(),
-    { pineconeIndex }
-  );
-
-  const pastMessages = messages.map((m) => {
-    if (m.role === "user") {
-      return new HumanChatMessage(m.content);
+    if (pinecone == null) {
+      await initPineconeClient();
     }
-    if (m.role === "system") {
-      return new SystemChatMessage(m.content);
-    }
-    return new AIChatMessage(m.content);
-  });
 
-  const { stream, handlers } = LangChainStream();
+    const pineconeIndex = pinecone!.Index(process.env.PINECONE_INDEX_NAME!);
 
-  const model = new ChatOpenAI({
-    temperature: 0.2,
-    streaming: true,
-  });
+    const vectorStore = await PineconeStore.fromExistingIndex(
+      new OpenAIEmbeddings(),
+      { pineconeIndex }
+    );
 
-  const nonStreamingModel = new ChatOpenAI();
+    const pastMessages = messages.map((m) => {
+      if (m.role === "user") {
+        return new HumanChatMessage(m.content);
+      }
+      if (m.role === "system") {
+        return new SystemChatMessage(m.content);
+      }
+      return new AIChatMessage(m.content);
+    });
 
-  const chain = ConversationalRetrievalQAChain.fromLLM(
-    model,
-    vectorStore.asRetriever(5),
-    {
-      verbose: true,
-      questionGeneratorChainOptions: {
-        llm: nonStreamingModel,
-        template: templates.qaPrompt,
-      },
-    }
-  );
+    const { stream, handlers } = LangChainStream();
 
-  const question = messages[messages.length - 1].content;
+    const model = new ChatOpenAI({
+      temperature: 0,
+      streaming: true,
+    });
 
-  chain
-    .call(
+    const nonStreamingModel = new ChatOpenAI({ temperature: 0.1 });
+
+    const chain = ConversationalRetrievalQAChain.fromLLM(
+      model,
+      vectorStore.asRetriever(2),
       {
-        question,
-        chat_history: pastMessages,
-      },
-      [handlers]
-    )
-    .catch(console.error);
+        verbose: true,
+        questionGeneratorChainOptions: {
+          llm: nonStreamingModel,
+          template: templates.qaPrompt,
+        },
+      }
+    );
 
-  return new StreamingTextResponse(stream);
+    const question = messages[messages.length - 1].content;
+
+    chain
+      .call(
+        {
+          question,
+          chat_history: pastMessages,
+        },
+        [handlers]
+      )
+      .catch(console.error);
+
+    return new StreamingTextResponse(stream);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return new Response(JSON.stringify(error.issues), { status: 422 });
+    }
+
+    return new Response(null, { status: 500 });
+  }
 }

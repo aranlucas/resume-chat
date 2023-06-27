@@ -24,16 +24,6 @@ const ChatSchema = z.object({
   ),
 });
 
-const templates = {
-  qaPrompt: `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
-      Bob (CTO of Big Tech company), 🦅Tom (Senior Frontend Engineer), and 🐻Mia (Senior Backend Engineer), three recruiters renowned for their technical expertise in software development and their profound understanding of your profile, are collaboratively answering questions about you using the Tree of Thoughts method. Their responses will be shared in detailed paragraphs, each building upon the previous insights provided by others. They'll iteratively refine and expand upon each other's responses, striving for the most comprehensive and accurate answers. Importantly, they will not make up answers, but rather leverage their technological knowledge and calculation abilities as required. The conversation will unfold naturally until a thorough and definitive response to the question at hand is achieved.
-      
-      Chat History:
-      {chat_history}    
-      Follow Up Input: {question}
-      The recruiters' collaborative answer:`,
-};
-
 export const runtime = "edge";
 
 let pinecone: PineconeClient | null = null;
@@ -76,19 +66,20 @@ export async function POST(req: Request) {
     const { stream, handlers } = LangChainStream();
 
     const model = new ChatOpenAI({
-      temperature: 0,
+      temperature: 1,
       streaming: true,
     });
 
-    const nonStreamingModel = new ChatOpenAI({ temperature: 0.2  });
+    const questionModel = new ChatOpenAI({
+      temperature: 1,
+    });
 
     const chain = ConversationalRetrievalQAChain.fromLLM(
       model,
-      vectorStore.asRetriever(2),
+      vectorStore.asRetriever(),
       {
         questionGeneratorChainOptions: {
-          llm: nonStreamingModel,
-          template: templates.qaPrompt,
+          llm: questionModel,
         },
       }
     );
@@ -107,6 +98,8 @@ export async function POST(req: Request) {
 
     return new StreamingTextResponse(stream);
   } catch (error) {
+    console.log(JSON.stringify(error, null, 4));
+
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify(error.issues), { status: 422 });
     }

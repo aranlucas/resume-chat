@@ -1,6 +1,5 @@
-import { LangChainStream } from "@/lib/LangChainStream";
 import { PineconeClient } from "@pinecone-database/pinecone";
-import { StreamingTextResponse } from "ai";
+import { LangChainStream, StreamingTextResponse } from "ai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
@@ -16,7 +15,7 @@ import z from "zod";
 const ChatSchema = z.object({
   messages: z.array(
     z.object({
-      role: z.enum(["system", "user", "assistant"]),
+      role: z.enum(["function", "system", "user", "assistant"]),
       content: z.string(),
       id: z.string().optional(),
       createdAt: z.date().optional(),
@@ -89,17 +88,18 @@ export async function POST(req: Request) {
     chain
       .call(
         {
+          verbose: true,
           question,
           chat_history: pastMessages,
         },
         [handlers]
       )
-      .catch(console.error);
+      .catch((e) => {
+        console.error(e.message);
+      });
 
     return new StreamingTextResponse(stream);
   } catch (error) {
-    console.log(JSON.stringify(error, null, 4));
-
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify(error.issues), { status: 422 });
     }

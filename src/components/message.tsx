@@ -2,15 +2,13 @@ import { cn } from "@/lib/utils";
 
 interface MessageProps {
   message: string;
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | string;
 }
 
 const Message = ({ message, role }: MessageProps) => {
   return (
     <div className="chat-message">
-      <div
-        className={cn("flex items-end", { "justify-end": role === "user" })}
-      >
+      <div className={cn("flex items-end", { "justify-end": role === "user" })}>
         <div className="order-2 mx-2 flex max-w-xs flex-col items-start space-y-2 text-xs">
           <div>
             <span

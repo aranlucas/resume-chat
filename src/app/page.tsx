@@ -1,6 +1,6 @@
 "use client";
 
-import { Icons } from "@/components/icons";
+import Icon from "@/components/icons";
 import Message from "@/components/message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ export default function Home() {
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
-                    <Icons.arrow className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Icon name="arrow-right" className="mr-2 h-4 w-4 text-muted-foreground" />
                     Where has Lucas worked?
                   </button>
                   <button
@@ -53,7 +53,7 @@ export default function Home() {
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
-                    <Icons.arrow className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Icon name="arrow-right" className="mr-2 h-4 w-4 text-muted-foreground" />
                     What skills does Lucas have?
                   </button>
                   <button
@@ -62,7 +62,7 @@ export default function Home() {
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
-                    <Icons.arrow className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Icon name="arrow-right" className="mr-2 h-4 w-4 text-muted-foreground" />
                     Who is Lucas?
                   </button>
                 </div>
@@ -99,9 +99,9 @@ export default function Home() {
             >
               <span className="font-bold">Send</span>
               {isLoading ? (
-                <Icons.loader className="ml-2 h-6 w-6 rotate-45 animate-spin fill-blue-600 dark:text-gray-600" />
+                <Icon name="loader" className="ml-2 h-6 w-6 rotate-45 animate-spin fill-blue-600 dark:text-gray-600" />
               ) : (
-                <Icons.send className="ml-2 h-6 w-6 rotate-45" />
+                <Icon name="send" className="ml-2 h-6 w-6 rotate-45" />
               )}
             </Button>
           </div>

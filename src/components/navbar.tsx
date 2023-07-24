@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icons } from "./icons";
+import Icon from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 import { Separator } from "./ui/separator";
 
@@ -12,7 +12,7 @@ const NavBar = () => {
         </h2>
         <div className="flex items-center justify-end space-x-2">
           <Link href="https://github.com/aranlucas/resume-chat">
-            <Icons.gitHub className="ml-2 h-6 w-6" />
+            <Icon name="github" className="ml-2 h-6 w-6" />
           </Link>
 
           <ThemeToggle />

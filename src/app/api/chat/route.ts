@@ -1,15 +1,11 @@
-import { PineconeClient } from "@pinecone-database/pinecone";
+import PineconeClient from "@/lib/pinecone";
 import { LangChainStream, StreamingTextResponse } from "ai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import {
-  AIChatMessage,
-  HumanChatMessage,
-  SystemChatMessage,
-} from "langchain/schema";
+import { AIMessage, HumanMessage, SystemMessage } from "langchain/schema";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
-import z from "zod";
+import { z } from "zod";
 
 // { messages: [ { role: 'user', content: 'hi' } ] }
 const ChatSchema = z.object({
@@ -25,27 +21,14 @@ const ChatSchema = z.object({
 
 export const runtime = "edge";
 
-let pinecone: PineconeClient | null = null;
-
-const initPineconeClient = async () => {
-  pinecone = new PineconeClient();
-  await pinecone.init({
-    apiKey: process.env.PINECONE_API_KEY!,
-    environment: process.env.PINECONE_ENVIRONMENT!,
-  });
-};
-
 export async function POST(req: Request) {
   const body = await req.json();
 
   try {
     const { messages } = ChatSchema.parse(body);
+    const pinecone = await PineconeClient();
 
-    if (pinecone == null) {
-      await initPineconeClient();
-    }
-
-    const pineconeIndex = pinecone!.Index(process.env.PINECONE_INDEX_NAME!);
+    const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
 
     const vectorStore = await PineconeStore.fromExistingIndex(
       new OpenAIEmbeddings(),
@@ -54,12 +37,12 @@ export async function POST(req: Request) {
 
     const pastMessages = messages.map((m) => {
       if (m.role === "user") {
-        return new HumanChatMessage(m.content);
+        return new HumanMessage(m.content);
       }
       if (m.role === "system") {
-        return new SystemChatMessage(m.content);
+        return new SystemMessage(m.content);
       }
-      return new AIChatMessage(m.content);
+      return new AIMessage(m.content);
     });
 
     const { stream, handlers } = LangChainStream();
@@ -94,12 +77,11 @@ export async function POST(req: Request) {
         },
         [handlers]
       )
-      .catch((e) => {
-        console.error(e.message);
-      });
+      .catch(console.error);
 
     return new StreamingTextResponse(stream);
   } catch (error) {
+    console.error(error);
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify(error.issues), { status: 422 });
     }

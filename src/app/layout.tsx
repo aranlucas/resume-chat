@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import "@/styles/globals.css";
+import "./globals.css";
 import NavBar from "@/components/navbar";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { Analytics } from "@vercel/analytics/react";

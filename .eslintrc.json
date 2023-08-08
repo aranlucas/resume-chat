@@ -20,8 +20,6 @@
   },
   "plugins": ["react", "tailwindcss", "prettier"],
   "rules": {
-    "@next/next/no-html-link-for-pages": "off",
-    "tailwindcss/no-custom-classname": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-non-null-assertion": "off"
   },
@@ -29,9 +27,6 @@
     "tailwindcss": {
       "callees": ["cn"],
       "config": "./tailwind.config.js"
-    },
-    "next": {
-      "rootDir": ["./"]
     }
   }
 }

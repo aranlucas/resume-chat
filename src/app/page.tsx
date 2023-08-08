@@ -80,7 +80,7 @@ export default function Home() {
           })}
         </div>
       )}
-      <div className="flex-2 mb-2 border-t-2 px-4 pt-4">
+      <div className="mb-2 border-t-2 px-4 pt-4">
         <form className="flex" onSubmit={handleSubmit} ref={formRef}>
           <Input
             name="message"

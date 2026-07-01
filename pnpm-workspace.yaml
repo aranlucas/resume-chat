@@ -1,0 +1,14 @@
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@ai-sdk/gateway@4.0.7'
+  - '@ai-sdk/provider-utils@5.0.2'
+  - '@ai-sdk/provider@4.0.1'
+  - '@radix-ui/react-primitive@2.1.7'
+  - '@radix-ui/react-separator@1.1.11'
+  - ai@7.0.9
+  - eslint-plugin-tailwindcss@4.0.5
+  - '@ai-sdk/mcp@2.0.4'
+  - '@ai-sdk/openai@4.0.4'
+  - '@ai-sdk/react@4.0.10'

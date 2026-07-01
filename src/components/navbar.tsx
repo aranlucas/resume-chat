@@ -12,7 +12,7 @@ const NavBar = () => {
         </h2>
         <div className="flex items-center justify-end space-x-2">
           <Link href="https://github.com/aranlucas/resume-chat">
-            <Icon name="github" className="ml-2 h-6 w-6" />
+            <Icon name="external-link" className="ml-2 h-6 w-6" />
           </Link>
 
           <ThemeToggle />

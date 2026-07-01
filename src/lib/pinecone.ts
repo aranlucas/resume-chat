@@ -1,11 +1,8 @@
-import { PineconeClient } from "@pinecone-database/pinecone";
+import { Pinecone } from "@pinecone-database/pinecone";
 
 async function initPinecone() {
   try {
-    const pinecone = new PineconeClient();
-
-    await pinecone.init({
-      environment: process.env.PINECONE_ENVIRONMENT ?? "",
+    const pinecone = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY ?? "",
     });
 

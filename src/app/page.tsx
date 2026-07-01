@@ -4,20 +4,22 @@ import Icon from "@/components/icons";
 import Message from "@/components/message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useChat } from "ai/react";
-import { useRef } from "react";
+import { useChat } from "@ai-sdk/react";
+import { useState, useRef } from "react";
 
 export default function Home() {
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    setInput,
-  } = useChat();
-
+  const { messages, sendMessage, status } = useChat();
+  const [input, setInput] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  }
 
   return (
     <>
@@ -40,7 +42,7 @@ export default function Home() {
                 <div className="mt-4 flex flex-col items-start space-y-2">
                   <button
                     onClick={() => {
-                      setInput("Where has Lucas worked?");
+                      sendMessage({ text: "Where has Lucas worked?" });
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
@@ -49,7 +51,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => {
-                      setInput("What skills does Lucas have?");
+                      sendMessage({ text: "What skills does Lucas have?" });
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
@@ -58,7 +60,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => {
-                      setInput("Who is Lucas?");
+                      sendMessage({ text: "Who is Lucas?" });
                     }}
                     className="inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium text-primary underline-offset-4 shadow-none ring-offset-background transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
@@ -76,19 +78,23 @@ export default function Home() {
           className="flex grow flex-col space-y-4 overflow-y-scroll p-3"
         >
           {messages.map((m, i) => {
-            return <Message message={m.content} role={m.role} key={i} />;
+            const text = m.parts
+              .filter((p) => p.type === "text")
+              .map((p) => p.text)
+              .join("");
+            return <Message message={text} role={m.role} key={i} />;
           })}
         </div>
       )}
       <div className="mb-2 border-t-2 px-4 pt-4">
-        <form className="flex" onSubmit={handleSubmit} ref={formRef}>
+        <form className="flex" onSubmit={onSubmit} ref={formRef}>
           <Input
             name="message"
             type="text"
             placeholder="Write your message!"
             className="mx-3 block w-full rounded-full py-2 pl-4 outline-none"
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
           />
           <div className="inset-y-0 right-0 items-center">
             <Button

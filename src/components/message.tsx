@@ -14,7 +14,7 @@ const Message = ({ message, role }: MessageProps) => {
             className={cn({
               "inline-block rounded-lg rounded-bl-none bg-gray-300 px-4 py-2 text-gray-600":
                 role === "assistant",
-              "px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white":
+              "inline-block rounded-lg rounded-br-none bg-blue-600 px-4 py-2 text-white":
                 role === "user",
             })}
           >

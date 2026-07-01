@@ -17,9 +17,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn("bg-muted/50 font-sans antialiased", inter.className)}
-      >
+      <body className={cn("bg-muted/50 font-sans antialiased", inter.className)}>
         <Providers>
           <main className="flex h-[calc(100dvh)] w-full flex-col">
             <NavBar />

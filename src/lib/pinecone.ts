@@ -10,7 +10,8 @@ async function initPinecone() {
   } catch (error) {
     console.error(error);
     throw new Error(
-      "Failed to initialize Pinecone Client, please make sure you have the correct environment and api keys"
+      "Failed to initialize Pinecone Client, please make sure you have the correct environment and api keys",
+      { cause: error },
     );
   }
 }

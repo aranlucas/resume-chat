@@ -10,7 +10,7 @@ const ChatSchema = z.object({
     z.object({
       role: z.enum(["system", "user", "assistant"]),
       content: z.string(),
-    })
+    }),
   ),
 });
 
@@ -21,10 +21,9 @@ export async function POST(req: Request) {
     const { messages } = ChatSchema.parse(body);
     const pinecone = await PineconeClient();
     const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-    const vectorStore = await PineconeStore.fromExistingIndex(
-      new OpenAIEmbeddings(),
-      { pineconeIndex }
-    );
+    const vectorStore = await PineconeStore.fromExistingIndex(new OpenAIEmbeddings(), {
+      pineconeIndex,
+    });
 
     const question = messages[messages.length - 1].content;
     const retriever = vectorStore.asRetriever();

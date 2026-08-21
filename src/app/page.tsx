@@ -71,13 +71,13 @@ export default function Home() {
         </div>
       ) : (
         <div id="messages" className="flex grow flex-col space-y-4 overflow-y-scroll p-3">
-            {messages.map((m) => {
-              const text = m.parts
-                .filter((p) => p.type === "text")
-                .map((p) => p.text)
-                .join("");
-              return <Message message={text} role={m.role} key={m.id} />;
-            })}
+          {messages.map((m) => {
+            const text = m.parts
+              .filter((p) => p.type === "text")
+              .map((p) => p.text)
+              .join("");
+            return <Message message={text} role={m.role} key={m.id} />;
+          })}
         </div>
       )}
       <div className="mb-2 border-t-2 px-4 pt-4">

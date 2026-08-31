@@ -6,19 +6,28 @@ import { PineconeStore } from "@langchain/pinecone";
 import { z } from "zod";
 
 const ChatSchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(["system", "user", "assistant"]),
-      content: z.string(),
-    }),
-  ),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["system", "user", "assistant"]),
+        parts: z.array(
+          z.object({
+            type: z.literal("text"),
+            text: z.string(),
+          }),
+        ),
+      }),
+    )
+    .min(1),
 });
 
 export async function POST(req: Request) {
-  const body = await req.json();
-
   try {
-    const { messages } = ChatSchema.parse(body);
+    const { messages: uiMessages } = ChatSchema.parse(await req.json());
+    const messages = uiMessages.map(({ role, parts }) => ({
+      role,
+      content: parts.map((part) => part.text).join(""),
+    }));
     const pinecone = await PineconeClient();
     const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
     const vectorStore = await PineconeStore.fromExistingIndex(new OpenAIEmbeddings(), {
@@ -36,7 +45,7 @@ export async function POST(req: Request) {
       messages,
     });
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error(error);
     if (error instanceof z.ZodError) {

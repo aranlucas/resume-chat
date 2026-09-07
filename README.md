@@ -16,6 +16,6 @@ Open [http://localhost:3000](http://localhost:3000). Configure the required envi
 ```bash
 pnpm format:check
 pnpm lint
-pnpm compile
+pnpm typecheck
 pnpm build
 ```

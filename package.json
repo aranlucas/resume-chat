@@ -5,12 +5,12 @@
   "scripts": {
     "analyze": "cross-env ANALYZE=true next build",
     "build": "next build",
-    "compile": "tsc --noEmit",
     "dev": "next dev",
     "lint": "oxlint",
     "format": "oxfmt --write src/",
     "format:check": "oxfmt --check src/",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.53",

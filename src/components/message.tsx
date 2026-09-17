@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 interface MessageProps {
-  message: string;
-  role: "system" | "user" | "assistant" | string;
+  role: string;
+  children: ReactNode;
 }
 
-const Message = ({ message, role }: MessageProps) => {
+const Message = ({ role, children }: MessageProps) => {
   const isUser = role === "user";
 
   return (
@@ -18,7 +19,7 @@ const Message = ({ message, role }: MessageProps) => {
             : "bg-muted text-foreground rounded-bl-md",
         )}
       >
-        {message}
+        {children}
       </div>
     </div>
   );

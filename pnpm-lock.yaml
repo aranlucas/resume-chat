@@ -122,8 +122,8 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@pinecone-database/pinecone@8.2.0)
       '@next/bundle-analyzer':
-        specifier: ^16.3.4
-        version: 16.3.4
+        specifier: ^16.3.5
+        version: 16.3.5
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.9.1
@@ -493,8 +493,8 @@ packages:
   '@langchain/protocol@0.0.19':
     resolution: {integrity: sha512-9hKcRrH7cBX6gfutdfXPoft1OCchHe4FEpALoDJMl5Qu+n/YG5ynZmyu8+8cxORlPwHBoKTxggvXz+76M1yX1Q==}
 
-  '@next/bundle-analyzer@16.3.4':
-    resolution: {integrity: sha512-AxZugwx+m38jPuPxNtqX7JAg6M6WJH6pIUTqNG0Rq6i6BkluozpcwrF0QewmUQZAF4FRfGtcFAGA7/T7hX079w==}
+  '@next/bundle-analyzer@16.3.5':
+    resolution: {integrity: sha512-EbKlv1DkII5+BGl8qweNtrX+7Ot+QOCsSpUve43W8XsOQz7am0T45pCdm6W3kbBwWtEbIEKNhAknje1gjXyyLw==}
 
   '@next/env@16.3.4':
     resolution: {integrity: sha512-cjWZnUUa6jZq2kFaNe/ZyJdZonOZ/QoN0Zka2nz/FLOrfx14pQuM9c5RaSVkWMqgdt4ksgPAMWPyHSs/CyV48Q==}
@@ -1884,7 +1884,7 @@ snapshots:
 
   '@langchain/protocol@0.0.19': {}
 
-  '@next/bundle-analyzer@16.3.4':
+  '@next/bundle-analyzer@16.3.5':
     dependencies:
       webpack-bundle-analyzer: 4.10.1
     transitivePeerDependencies:

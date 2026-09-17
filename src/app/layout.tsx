@@ -10,8 +10,8 @@ import { type ReactNode } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Chat with Lucas",
-  description: "Get to know Lucas",
+  title: "Ask Lucas — Resume Chat",
+  description: "Chat with an AI assistant that knows Lucas Arango's resume.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

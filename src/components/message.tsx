@@ -6,21 +6,19 @@ interface MessageProps {
 }
 
 const Message = ({ message, role }: MessageProps) => {
+  const isUser = role === "user";
+
   return (
-    <div className={cn("flex items-end", { "justify-end": role === "user" })}>
-      <div className="order-2 mx-2 flex max-w-xs flex-col items-start space-y-2 text-xs">
-        <div>
-          <span
-            className={cn({
-              "inline-block rounded-lg rounded-bl-none bg-gray-300 px-4 py-2 text-gray-600":
-                role === "assistant",
-              "inline-block rounded-lg rounded-br-none bg-blue-600 px-4 py-2 text-white":
-                role === "user",
-            })}
-          >
-            {message}
-          </span>
-        </div>
+    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
+      <div
+        className={cn(
+          "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap sm:max-w-[75%]",
+          isUser
+            ? "bg-primary text-primary-foreground rounded-br-md"
+            : "bg-muted text-foreground rounded-bl-md",
+        )}
+      >
+        {message}
       </div>
     </div>
   );

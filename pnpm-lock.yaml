@@ -116,11 +116,11 @@ importers:
         specifier: 4.0.90
         version: 4.0.90(react@19.2.8)(zod@4.5.4)
       '@langchain/openai':
-        specifier: ^1.5.10
-        version: 1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))
+        specifier: ^1.5.13
+        version: 1.5.13(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(undici@7.29.0)
       '@langchain/pinecone':
         specifier: ^1.0.3
-        version: 1.0.3(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@pinecone-database/pinecone@8.2.0)
+        version: 1.0.3(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@pinecone-database/pinecone@8.2.0)
       '@next/bundle-analyzer':
         specifier: ^16.3.4
         version: 16.3.4
@@ -165,7 +165,7 @@ importers:
         version: 10.1.0
       langchain:
         specifier: ^1.5.10
-        version: 1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 1.5.10(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       lucide-react:
         specifier: ^1.38.0
         version: 1.38.0(react@19.2.8)
@@ -432,8 +432,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@langchain/core@1.2.9':
-    resolution: {integrity: sha512-conzSEj9Zu1AyXJLXsSbgrtxtxinmI1yGqQ5CIJZSoV5rvv+yvQE/vgBnoySpBQ/bl3YPgj2FL/gbDjWykLSfg==}
+  '@langchain/core@1.2.11':
+    resolution: {integrity: sha512-8yuWLLloTSYA453akm2JSadOVa8kGDY8v+kTzQ6kTY6aIETTEIxgysjZWyKrWQLo3UazctsSoGJ8JrdCGFL4/w==}
     engines: {node: '>=20'}
 
   '@langchain/langgraph-checkpoint@1.1.5':
@@ -467,11 +467,11 @@ packages:
       '@langchain/core': ^1.1.48
       zod: ^3.25.32 || ^4.2.0
 
-  '@langchain/openai@1.5.10':
-    resolution: {integrity: sha512-4cxdgolkkXwnAiGEkNrue+ba7jUKjfBwleLCX5DrRVcRGrCc4w5EceblYZOIaHMY6+nhwMqIOtSzBWgcBCLfmw==}
+  '@langchain/openai@1.5.13':
+    resolution: {integrity: sha512-SA1QWNgM/p8xhdwU82CJ7OofhHEExpAaIwJ7j9ELIyVW795Mn0jDRQO/5yChawLcPhuLkeL+jMesi0FnXbImSg==}
     engines: {node: '>=22'}
     peerDependencies:
-      '@langchain/core': ^1.2.9
+      '@langchain/core': ^1.2.11
 
   '@langchain/pinecone@1.0.3':
     resolution: {integrity: sha512-enfD7hkbiXzoA3Uq8sRan5PX0I9iLliFTJbkW7MeLf90c5lR1hNj31VN0Ep9OlvmBPgkB1viMObl9rPerAe3gQ==}
@@ -1386,6 +1386,30 @@ packages:
       sass:
         optional: true
 
+  openai@7.17.0:
+    resolution: {integrity: sha512-w1FD52GfPRIFJsWebDha43/Bs2Xx7rwtbG33jXTIgXdKpHqOA8G9XPqFEH0OXcoPgdfsiN+BbHkoJMY3rmcJnA==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@aws-sdk/credential-provider-node': '>=3.972.0 <4'
+      '@smithy/hash-node': '>=4.3.0 <5'
+      '@smithy/signature-v4': '>=5.4.0 <6'
+      undici: '>=5 <9'
+      ws: ^8.21.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      '@aws-sdk/credential-provider-node':
+        optional: true
+      '@smithy/hash-node':
+        optional: true
+      '@smithy/signature-v4':
+        optional: true
+      undici:
+        optional: true
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   openai@7.5.0:
     resolution: {integrity: sha512-ZbDBz8FSB8Mv8fFYIUvzTFMdV5vl93/octp1MdtK2lfYepSpfv/ewmeugpKz/cwGtFSx+YuUM4NwpZ2P55YiPA==}
     engines: {node: '>=22.0.0'}
@@ -1539,9 +1563,6 @@ packages:
     resolution: {integrity: sha512-ej644Y2bvkIajfR32KGeSSdBXQW+ScjGjkybZgSE7kFpk9eGnV44XY9FJylXi+W75pavSX1PVNB57W5EbhGIYw==}
     peerDependencies:
       react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  tailwind-merge@3.6.0:
-    resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
 
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
@@ -1794,7 +1815,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))':
+  '@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
@@ -1810,13 +1831,13 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/langgraph-checkpoint@1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))':
+  '@langchain/langgraph-checkpoint@1.1.5(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
+      '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
 
-  '@langchain/langgraph-sdk@1.9.31(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@langchain/langgraph-sdk@1.9.31(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
+      '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
       '@langchain/protocol': 0.0.18
       '@types/json-schema': 7.0.15
       p-queue: 9.3.0
@@ -1825,11 +1846,11 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
-  '@langchain/langgraph@1.4.12(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.5.4)':
+  '@langchain/langgraph@1.4.12(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.5.4)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
-      '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))
-      '@langchain/langgraph-sdk': 1.9.31(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
+      '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))
+      '@langchain/langgraph-sdk': 1.9.31(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@langchain/protocol': 0.0.18
       '@standard-schema/spec': 1.1.0
       zod: 4.5.4
@@ -1839,21 +1860,22 @@ snapshots:
       - svelte
       - vue
 
-  '@langchain/openai@1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))':
+  '@langchain/openai@1.5.13(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(undici@7.29.0)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
+      '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
       js-tiktoken: 1.0.21
-      openai: 7.5.0(zod@4.5.4)
+      openai: 7.17.0(undici@7.29.0)(zod@4.5.4)
       zod: 4.5.4
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-node'
       - '@smithy/hash-node'
       - '@smithy/signature-v4'
+      - undici
       - ws
 
-  '@langchain/pinecone@1.0.3(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@pinecone-database/pinecone@8.2.0)':
+  '@langchain/pinecone@1.0.3(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@pinecone-database/pinecone@8.2.0)':
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
+      '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
       '@pinecone-database/pinecone': 8.2.0
       flat: 5.0.2
 
@@ -2235,9 +2257,9 @@ snapshots:
 
   clsx@2.1.1: {}
 
-  commander@7.2.0: {}
-
   cn@0.2.4: {}
+
+  commander@7.2.0: {}
 
   cross-env@10.1.0:
     dependencies:
@@ -2297,11 +2319,11 @@ snapshots:
 
   json-schema@0.4.0: {}
 
-  langchain@1.5.10(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  langchain@1.5.10(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
-      '@langchain/core': 1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
-      '@langchain/langgraph': 1.4.12(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.5.4)
-      '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.9(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))
+      '@langchain/core': 1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
+      '@langchain/langgraph': 1.4.12(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.5.4)
+      '@langchain/langgraph-checkpoint': 1.1.5(@langchain/core@1.2.11(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4)))
       langsmith: 0.7.13(@opentelemetry/api@1.9.1)(openai@7.5.0(zod@4.5.4))
       zod: 4.5.4
     transitivePeerDependencies:
@@ -2416,9 +2438,15 @@ snapshots:
       - '@types/node'
       - babel-plugin-macros
 
+  openai@7.17.0(undici@7.29.0)(zod@4.5.4):
+    optionalDependencies:
+      undici: 7.29.0
+      zod: 4.5.4
+
   openai@7.5.0(zod@4.5.4):
     optionalDependencies:
       zod: 4.5.4
+    optional: true
 
   opener@1.5.2: {}
 
@@ -2578,8 +2606,6 @@ snapshots:
       dequal: 2.0.3
       react: 19.2.8
       use-sync-external-store: 1.6.0(react@19.2.8)
-
-  tailwind-merge@3.6.0: {}
 
   tailwindcss@4.3.3: {}
 

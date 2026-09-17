@@ -5,110 +5,142 @@ import Message from "@/components/message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useChat } from "@ai-sdk/react";
-import { useState, useRef } from "react";
+import { DefaultChatTransport } from "ai";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const SUGGESTIONS = [
+  "Where has Lucas worked?",
+  "What skills does Lucas have?",
+  "Tell me about the Ask DoorDash grocery agent",
+  "Who is Lucas?",
+];
 
 export default function Home() {
-  const { messages, sendMessage, status } = useChat();
   const [input, setInput] = useState("");
-  const formRef = useRef<HTMLFormElement>(null);
+  const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
+  const { messages, sendMessage, status, error, regenerate, stop } = useChat({ transport });
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const isLoading = status === "submitted" || status === "streaming";
 
+  const messageCount = messages.length;
+
+  // Keep the latest message visible as the conversation grows or streams in.
+  useEffect(() => {
+    if (messageCount > 0 && status) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    }
+  }, [messageCount, status]);
+
+  function submitText(text: string) {
+    const value = text.trim();
+    if (!value || isLoading) return;
+    sendMessage({ text: value });
+    setInput("");
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
-    sendMessage({ text: input });
-    setInput("");
+    submitText(input);
   }
 
   return (
     <>
-      {messages.length === 0 ? (
-        <div className="flex grow flex-col overflow-y-scroll">
-          <div className="pt-4 pb-[200px] md:pt-10">
-            <div className="mx-auto max-w-2xl px-4">
-              <div className="bg-background rounded-lg border p-8">
-                <h1 className="mb-2 text-lg font-semibold">Welcome to my Resume ChatBot</h1>
-                <p className="text-muted-foreground mb-2 leading-normal">
-                  This chatbot will answer any questions you may have about resume. Working on
-                  building a question bank to answer more leadership answers
-                </p>
-                <p className="text-muted-foreground mb-2 leading-normal">
-                  You can try asking any of the following questions:
-                </p>
-                <div className="mt-4 flex flex-col items-start space-y-2">
+      <div ref={scrollRef} className="flex grow flex-col overflow-y-scroll">
+        {messages.length === 0 ? (
+          <div className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10 md:pt-12">
+            <div className="bg-card rounded-2xl border p-6 shadow-sm md:p-8">
+              <p className="text-muted-foreground text-xs font-medium tracking-widest uppercase">
+                Powered by OpenRouter · free model
+              </p>
+              <h1 className="mt-2 text-xl font-semibold tracking-tight">
+                Ask anything about Lucas
+              </h1>
+              <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                This assistant answers from Lucas Arango&apos;s resume — 10+ years across DoorDash,
+                AWS, and Amazon, plus AI agent platforms and cloud services.
+              </p>
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                {SUGGESTIONS.map((suggestion) => (
                   <button
-                    onClick={() => {
-                      sendMessage({ text: "Where has Lucas worked?" });
-                    }}
-                    className="text-primary ring-offset-background focus-visible:ring-ring inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium underline-offset-4 shadow-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                    key={suggestion}
+                    onClick={() => submitText(suggestion)}
+                    disabled={isLoading}
+                    className="group bg-muted/60 hover:bg-muted flex items-start gap-2 rounded-xl border p-3 text-left text-sm transition-colors disabled:opacity-50"
                   >
-                    <Icon name="arrow-right" className="text-muted-foreground mr-2 h-4 w-4" />
-                    Where has Lucas worked?
+                    <Icon
+                      name="arrow-right"
+                      className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                    />
+                    <span>{suggestion}</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      sendMessage({ text: "What skills does Lucas have?" });
-                    }}
-                    className="text-primary ring-offset-background focus-visible:ring-ring inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium underline-offset-4 shadow-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    <Icon name="arrow-right" className="text-muted-foreground mr-2 h-4 w-4" />
-                    What skills does Lucas have?
-                  </button>
-                  <button
-                    onClick={() => {
-                      sendMessage({ text: "Who is Lucas?" });
-                    }}
-                    className="text-primary ring-offset-background focus-visible:ring-ring inline-flex h-auto items-center justify-center rounded-md p-0 text-base font-medium underline-offset-4 shadow-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    <Icon name="arrow-right" className="text-muted-foreground mr-2 h-4 w-4" />
-                    Who is Lucas?
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div id="messages" className="flex grow flex-col space-y-4 overflow-y-scroll p-3">
-          {messages.map((m) => {
-            const text = m.parts
-              .filter((p) => p.type === "text")
-              .map((p) => p.text)
-              .join("");
-            return <Message message={text} role={m.role} key={m.id} />;
-          })}
-        </div>
-      )}
-      <div className="mb-2 border-t-2 px-4 pt-4">
-        <form className="flex" onSubmit={onSubmit} ref={formRef}>
+        ) : (
+          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6">
+            {messages.map((m) => {
+              const text = m.parts
+                .filter((p) => p.type === "text")
+                .map((p) => p.text)
+                .join("");
+              if (!text) return null;
+              return <Message message={text} role={m.role} key={m.id} />;
+            })}
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
+              <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                <Icon name="loader" className="h-4 w-4 animate-spin" />
+                Thinking…
+              </div>
+            )}
+            {error && (
+              <div className="bg-destructive/10 text-destructive rounded-xl border p-3 text-sm">
+                Something went wrong.{" "}
+                <button onClick={() => regenerate()} className="font-medium underline">
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t px-4 pt-4 pb-3">
+        <form className="mx-auto flex w-full max-w-2xl items-center gap-2" onSubmit={onSubmit}>
           <Input
             name="message"
             type="text"
-            placeholder="Write your message!"
-            className="mx-3 block w-full rounded-full py-2 pl-4 outline-none"
+            placeholder="Ask about experience, skills, projects…"
+            className="h-11 rounded-full px-5"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            autoComplete="off"
           />
-          <div className="inset-y-0 right-0 items-center">
+          {isLoading ? (
             <Button
-              disabled={isLoading}
+              type="button"
               variant="secondary"
-              type="submit"
-              className="inline-flex items-center justify-center rounded-lg px-4 py-3 transition duration-500 ease-in-out focus:outline-none"
+              onClick={() => stop()}
+              className="h-11 shrink-0 rounded-full px-5 font-semibold"
             >
-              <span className="font-bold">Send</span>
-              {isLoading ? (
-                <Icon
-                  name="loader"
-                  className="ml-2 h-6 w-6 rotate-45 animate-spin fill-blue-600 dark:text-gray-600"
-                />
-              ) : (
-                <Icon name="send" className="ml-2 h-6 w-6 rotate-45" />
-              )}
+              Stop
             </Button>
-          </div>
+          ) : (
+            <Button
+              disabled={!input.trim()}
+              variant="default"
+              type="submit"
+              className="h-11 shrink-0 rounded-full px-5 font-semibold"
+            >
+              Send
+              <Icon name="send" className="ml-1.5 h-4 w-4" />
+            </Button>
+          )}
         </form>
+        <p className="text-muted-foreground mt-2 text-center text-xs">
+          Answers are generated from Lucas&apos;s resume and may be imperfect.
+        </p>
       </div>
     </>
   );

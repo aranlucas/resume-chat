@@ -1,56 +1,48 @@
-import PineconeClient from "@/lib/pinecone";
-import { streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { PineconeStore } from "@langchain/pinecone";
-import { z } from "zod";
+import { SYSTEM_PROMPT } from "@/lib/resume";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from "ai";
 
-const ChatSchema = z.object({
-  messages: z
-    .array(
-      z.object({
-        role: z.enum(["system", "user", "assistant"]),
-        parts: z.array(
-          z.object({
-            type: z.literal("text"),
-            text: z.string(),
-          }),
-        ),
-      }),
-    )
-    .min(1),
+// Allow streaming responses up to 30 seconds.
+export const maxDuration = 30;
+
+// Free OpenRouter model used by default. Override with OPENROUTER_MODEL, e.g.
+// "openrouter/free" (auto-router) or any other ":free" model.
+// See https://openrouter.ai/collections/free-models for the live list.
+const DEFAULT_MODEL = "openai/gpt-oss-120b:free";
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 export async function POST(req: Request) {
-  try {
-    const { messages: uiMessages } = ChatSchema.parse(await req.json());
-    const messages = uiMessages.map(({ role, parts }) => ({
-      role,
-      content: parts.map((part) => part.text).join(""),
-    }));
-    const pinecone = await PineconeClient();
-    const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-    const vectorStore = await PineconeStore.fromExistingIndex(new OpenAIEmbeddings(), {
-      pineconeIndex,
-    });
-
-    const question = messages[messages.length - 1].content;
-    const retriever = vectorStore.asRetriever();
-    const docs = await retriever.invoke(question);
-    const context = docs.map((d) => d.pageContent).join("\n\n");
-
-    const result = streamText({
-      model: openai("gpt-4o"),
-      system: `You are a helpful assistant answering questions about Lucas's resume. Use the following context to answer the user's question:\n\n${context}`,
-      messages,
-    });
-
-    return result.toUIMessageStreamResponse();
-  } catch (error) {
-    console.error(error);
-    if (error instanceof z.ZodError) {
-      return new Response(JSON.stringify(error.issues), { status: 422 });
-    }
-    return new Response(null, { status: 500 });
+  if (!process.env.OPENROUTER_API_KEY) {
+    return Response.json({ error: "OPENROUTER_API_KEY is not configured." }, { status: 500 });
   }
+
+  let messages: UIMessage[];
+  try {
+    ({ messages } = (await req.json()) as { messages: UIMessage[] });
+  } catch {
+    return Response.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return Response.json({ error: "messages must be a non-empty array." }, { status: 422 });
+  }
+
+  const result = streamText({
+    model: openrouter.chat(process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL),
+    system: SYSTEM_PROMPT,
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

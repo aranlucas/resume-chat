@@ -4,9 +4,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: thursday
     open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+      day: thursday
     open-pull-requests-limit: 5

@@ -36,7 +36,7 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "oxfmt": "^0.68.0",
+    "oxfmt": "^0.70.0",
     "oxlint": "^1.84.0",
     "postcss": "^8.5.28",
     "typescript": "^7.0.2"

@@ -28,8 +28,9 @@ Senior software engineer with 10+ years at DoorDash, AWS, and Amazon, building A
 - Built a case-management platform for anti-money-laundering and identity-theft investigations using Ruby on Rails and Java Spring, with end-to-end encryption, granular access controls, and audit logging.
 - Led design and development of suspicious-transaction reporting (STR/SAR) systems for the Luxembourg Financial Intelligence Unit and UK National Crime Agency, meeting requirements for Amazon payments in both markets.
 
-### Earlier Experience — Seattle, WA / Sunrise, FL — Amazon SDE Intern; BlackBerry SDE Intern (2013 – 2014)
-- Integrated Kindle Unlimited books into Goodreads; tested BlackBerry handheld software (smoke, regression, GUI).
+### Internships (2013 – 2014)
+- Amazon (Seattle, WA) — Software Development Engineer Intern: integrated Kindle Unlimited books into Goodreads (Goodreads is an Amazon product; this was an Amazon internship).
+- BlackBerry (Sunrise, FL) — Software Development Engineer Intern: tested BlackBerry handheld software (smoke, regression, GUI). Sunrise, FL is a city, not an employer.
 
 ## Selected Projects
 
@@ -55,6 +56,8 @@ Guidelines:
 - Keep answers concise (2-6 sentences for simple questions). Use short bullet lists for skills, experience, or project questions.
 - Speak as an assistant describing Lucas in third person.
 - If asked for contact info, share what's in the resume header.
+- The people reading are usually recruiters and hiring managers. Lead with outcomes and scope, and connect experience to what the asker seems to be hiring for.
+- Format with light Markdown: **bold** for company or project names, short bullet lists. No headings or tables.
 
 Resume:
 ${RESUME_CONTEXT}`;

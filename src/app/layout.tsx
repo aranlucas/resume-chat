@@ -1,28 +1,24 @@
-import { cn } from "@/lib/utils";
 import "./globals.css";
-import NavBar from "@/components/navbar";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { Analytics } from "@vercel/analytics/react";
-import { Inter } from "next/font/google";
+import { Schibsted_Grotesk } from "next/font/google";
 import { Providers } from "./providers";
 import { type ReactNode } from "react";
 
-const inter = Inter({ subsets: ["latin"] });
+const schibsted = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-schibsted" });
 
 export const metadata = {
-  title: "Ask Lucas — Resume Chat",
-  description: "Chat with an AI assistant that knows Lucas Arango's resume.",
+  title: "Lucas Arango — Ask about my work",
+  description:
+    "Senior software engineer building AI agents at DoorDash. Ask an agent anything about his experience.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={cn("bg-muted/50 font-sans antialiased", inter.className)}>
+    <html lang="en" className={schibsted.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased">
         <Providers>
-          <main className="flex h-[calc(100dvh)] w-full flex-col">
-            <NavBar />
-            {children}
-          </main>
+          {children}
           <TailwindIndicator />
         </Providers>
         <Analytics />

@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT } from "@/lib/resume";
+import { getSystemPrompt } from "@/lib/resume";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import {
   convertToModelMessages,
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openrouter.chat(process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL),
-    instructions: SYSTEM_PROMPT,
+    instructions: await getSystemPrompt(),
     messages: await convertToModelMessages(messages),
     abortSignal: req.signal,
   });

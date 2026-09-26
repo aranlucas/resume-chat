@@ -14,5 +14,5 @@
     "preserveDuplicates": false,
     "preserveWhitespace": false
   },
-  "ignorePatterns": ["pnpm-lock.yaml", "src/generated/**"]
+  "ignorePatterns": ["pnpm-lock.yaml"]
 }

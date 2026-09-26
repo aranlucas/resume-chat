@@ -1,16 +1,8 @@
-/**
- * Structured highlights from the resume, used by the page itself.
- * Keep in sync with the resume in github.com/aranlucas/resume.
- */
+import type { JsonResume } from "@/lib/resume";
+
+/** Page copy that isn't in the public resume. */
 export const PROFILE = {
-  name: "Lucas Arango",
-  title: "Senior software engineer",
-  location: "Seattle",
   email: "aranlucas@gmail.com",
-  links: [
-    { label: "LinkedIn", href: "https://www.linkedin.com/in/lucasarango" },
-    { label: "GitHub", href: "https://github.com/aranlucas" },
-  ],
 };
 
 export interface Role {
@@ -21,36 +13,61 @@ export interface Role {
   question: string;
 }
 
-export const ROLES: Role[] = [
-  {
-    years: "2023–now",
-    company: "DoorDash",
-    role: "Senior Software Engineer",
+// One-liners and suggested questions for the timeline, keyed by company or
+// school name in the resume. Entries without one still appear.
+const HIGHLIGHTS: Record<string, { note: string; question: string }> = {
+  DoorDash: {
     note: "Led Ask DoorDash's grocery agent from prototype to launch",
     question: "What did Lucas build at DoorDash, and what was the impact?",
   },
-  {
-    years: "2019–2022",
-    company: "AWS IoT",
-    role: "Software Development Engineer",
+  "Amazon Web Services (AWS)": {
     note: "Launched SiteWise Monitor to GA; moved the console to React",
     question: "What did Lucas ship on the AWS IoT team?",
   },
-  {
-    years: "2015–2019",
-    company: "Amazon",
-    role: "Software Development Engineer",
+  Amazon: {
     note: "Built compliance and fraud-investigation systems",
     question: "What did Lucas work on in Amazon Compliance Technologies?",
   },
-  {
-    years: "2015",
-    company: "University of Florida",
-    role: "B.S. Computer Engineering, cum laude",
+  "University of Florida": {
     note: "",
     question: "Where did Lucas go to school?",
   },
-];
+};
+
+const year = (yearMonth: string) => yearMonth.slice(0, 4);
+
+const highlight = (name: string) =>
+  HIGHLIGHTS[name] ?? { note: "", question: `What did Lucas do at ${name}?` };
+
+export function toProfile(resume: JsonResume) {
+  return {
+    name: resume.basics.name,
+    location: resume.basics.location.city,
+    email: PROFILE.email,
+    links: resume.basics.profiles.map((p) => ({ label: p.network, href: p.url })),
+  };
+}
+
+export type Profile = ReturnType<typeof toProfile>;
+
+/** Full-time roles and education; internships are left off the timeline. */
+export function toRoles(resume: JsonResume): Role[] {
+  const jobs = resume.work
+    .filter((job) => !/\bIntern$/.test(job.position))
+    .map((job) => ({
+      years: `${year(job.startDate)}–${job.endDate ? year(job.endDate) : "now"}`,
+      company: job.name,
+      role: job.position,
+      ...highlight(job.name),
+    }));
+  const schools = resume.education.map((school) => ({
+    years: year(school.endDate),
+    company: school.institution,
+    role: `${school.studyType} ${school.area}, ${school.score}`,
+    ...highlight(school.institution),
+  }));
+  return [...jobs, ...schools];
+}
 
 export const STARTERS = [
   "Why would Lucas be a strong hire for an AI agents team?",

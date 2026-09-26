@@ -30,6 +30,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable           | Required | Default                     | Description                                  |
 | ------------------ | -------- | --------------------------- | -------------------------------------------- |
 | `OPENROUTER_API_KEY` | Yes      | —                           | OpenRouter API key                           |
+| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
 | `OPENROUTER_MODEL`   | No       | `openrouter/free`           | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
 
 ## Vercel deployment
@@ -51,13 +52,13 @@ does not require OpenAI or Pinecone environment variables.
 
 ## Resume source
 
-The resume lives in [aranlucas/resume](https://github.com/aranlucas/resume) as
-LaTeX, which publishes a private-info-free `resume.md` to
+The resume lives in [aranlucas/resume](https://github.com/aranlucas/resume) as a
+[JSON Resume](https://jsonresume.org/schema), published without private info to
 [resume-api.aranlucas.workers.dev](https://resume-api.aranlucas.workers.dev/).
-`scripts/sync-resume.mts` pulls it into `src/generated/` before every build
-(`prebuild`), and `.github/workflows/sync-resume.yml` pulls it daily and commits
-any change, which redeploys the site. To update the resume, edit the LaTeX, not
-`src/generated/`. Run `pnpm sync-resume` to pull it manually.
+`src/lib/resume.ts` fetches `resume.md` (the assistant's system prompt) and
+`resume.json` (the page's experience timeline) with a 30-day cache tagged
+`resume`. The resume repo's deploy calls `POST /api/revalidate` to refresh both right away. To update
+the resume, edit it there.
 
 ## Verify
 

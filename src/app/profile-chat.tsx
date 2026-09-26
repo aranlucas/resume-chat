@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/conversation";
 import { MessageResponse } from "@/components/message-response";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { STARTERS, type Profile, type Role } from "@/lib/profile";
@@ -10,14 +15,6 @@ import { Fragment, useRef, useState } from "react";
 
 const hasContent = (message: UIMessage) =>
   message.parts.some((part) => part.type === "text" && part.text.trim().length > 0);
-
-// Keep the newest text in view as the transcript grows while an answer streams in.
-const followLatest = (node: HTMLDivElement | null) => {
-  if (!node) return;
-  const observer = new ResizeObserver(() => node.scrollIntoView({ block: "end" }));
-  observer.observe(node);
-  return () => observer.disconnect();
-};
 
 export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[] }) {
   const { messages, setMessages, sendMessage, status, stop, error, regenerate } = useChat({
@@ -45,7 +42,7 @@ export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[
         disabled={isLoading}
       />
 
-      <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "min-h-dvh")}>
+      <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "h-dvh")}>
         <header className="flex items-center justify-between gap-4 px-5 py-3 sm:px-8">
           <p className={cn("font-semibold", hasMessages ? "lg:invisible" : "invisible")}>
             {profile.name}
@@ -68,20 +65,25 @@ export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col px-5 sm:px-8">
-            {hasMessages ? (
+        {hasMessages ? (
+          <Conversation className="min-h-0">
+            <ConversationContent className="mx-auto flex w-full max-w-[44rem] flex-col px-5 sm:px-8">
               <Transcript
                 messages={messages}
                 status={status}
                 error={error}
                 onRetry={() => regenerate()}
               />
-            ) : (
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
+        ) : (
+          <div className="flex flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
+            <div className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col px-5 sm:px-8">
               <Starters onAsk={ask} />
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-paper sticky bottom-0 px-5 pt-2 pb-4 sm:px-8">
           <form
@@ -262,7 +264,7 @@ function Transcript({
     (isLoading && last?.role === "assistant" && !hasContent(last));
 
   return (
-    <div ref={followLatest} className="flex scroll-mb-32 flex-col pt-4 pb-8 lg:scroll-mb-0">
+    <div className="flex flex-col pt-4 pb-8">
       {messages.map((m, i) => {
         const parts = m.parts.map((part, index) => {
           const key = `${m.id}-part-${index}`;

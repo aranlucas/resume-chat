@@ -34,7 +34,8 @@ export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      sendReasoning: false,
+      // The client shows a "thinking" state while reasoning streams.
+      sendReasoning: true,
       onError: () => "The assistant is temporarily unavailable. Please try again in a moment.",
     }),
   });

@@ -160,3 +160,113 @@
     animation: none;
   }
 }
+
+/* Loading state: a tiny resume page with a highlighter sweeping its lines. */
+.resume-sheet {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 22px;
+  height: 28px;
+  padding: 5px 4px;
+  border: 1.5px solid var(--slate);
+  border-radius: 3px;
+  background: var(--sheet);
+  animation: sheet-bob 2.4s ease-in-out infinite;
+}
+.resume-sheet > span {
+  position: relative;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.resume-sheet > span:nth-child(1) {
+  width: 70%;
+  background: var(--slate);
+}
+.resume-sheet > span:nth-child(3) {
+  width: 85%;
+}
+.resume-sheet > span:nth-child(4) {
+  width: 55%;
+}
+.resume-sheet > span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cobalt);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: sheet-highlight 2.4s ease-in-out infinite;
+}
+.resume-sheet > span:nth-child(2)::after {
+  animation-delay: 0.3s;
+}
+.resume-sheet > span:nth-child(3)::after {
+  animation-delay: 0.6s;
+}
+.resume-sheet > span:nth-child(4)::after {
+  animation-delay: 0.9s;
+}
+@keyframes sheet-highlight {
+  0% {
+    transform: scaleX(0);
+  }
+  30%,
+  70% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+@keyframes sheet-bob {
+  50% {
+    transform: translateY(-2px) rotate(-3deg);
+  }
+}
+
+/* Label shimmers slate → cobalt → slate and fades in when it changes. */
+.thinking-label {
+  background: linear-gradient(
+      90deg,
+      var(--slate) 0%,
+      var(--slate) 40%,
+      var(--cobalt) 50%,
+      var(--slate) 60%,
+      var(--slate) 100%
+    )
+    0 0 / 250% 100%;
+  background-clip: text;
+  color: transparent;
+  animation:
+    label-shimmer 2.4s linear infinite,
+    label-in 0.3s ease-out;
+}
+@keyframes label-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+@keyframes label-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-sheet,
+  .resume-sheet > span::after,
+  .thinking-label {
+    animation: none;
+  }
+  .thinking-label {
+    color: var(--slate);
+  }
+}

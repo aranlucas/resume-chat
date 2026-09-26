@@ -1,10 +1,5 @@
 import type { JsonResume } from "@/lib/resume";
 
-/** Page copy that isn't in the public resume. */
-export const PROFILE = {
-  email: "aranlucas@gmail.com",
-};
-
 export interface Role {
   years: string;
   company: string;
@@ -43,7 +38,6 @@ export function toProfile(resume: JsonResume) {
   return {
     name: resume.basics.name,
     location: resume.basics.location.city,
-    email: PROFILE.email,
     links: resume.basics.profiles.map((p) => ({ label: p.network, href: p.url })),
   };
 }

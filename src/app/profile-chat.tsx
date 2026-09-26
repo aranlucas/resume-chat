@@ -11,10 +11,7 @@ import { STARTERS, type Profile, type Role } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { Fragment, useRef, useState } from "react";
-
-const hasContent = (message: UIMessage) =>
-  message.parts.some((part) => part.type === "text" && part.text.trim().length > 0);
+import { Fragment, useEffect, useRef, useState } from "react";
 
 export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[] }) {
   const { messages, setMessages, sendMessage, status, stop, error, regenerate } = useChat({
@@ -178,9 +175,6 @@ function ProfilePanel({
       </p>
 
       <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <a href={`mailto:${profile.email}`} className="hover:text-cobalt font-semibold">
-          {profile.email}
-        </a>
         {profile.links.map((l) => (
           <a key={l.label} href={l.href} className="text-slate hover:text-cobalt">
             {l.label}
@@ -255,66 +249,18 @@ function Transcript({
   error: Error | undefined;
   onRetry: () => void;
 }) {
-  const last = messages.at(-1);
-  const isLoading = status === "submitted" || status === "streaming";
-  // Waiting until the answer has something to show: the request is out and no
-  // assistant message exists yet, or it exists but has no text so far.
-  const waiting =
-    (status === "submitted" && last?.role !== "assistant") ||
-    (isLoading && last?.role === "assistant" && !hasContent(last));
-
   return (
     <div className="flex flex-col pt-4 pb-8">
-      {messages.map((m, i) => {
-        const parts = m.parts.map((part, index) => {
-          const key = `${m.id}-part-${index}`;
-          switch (part.type) {
-            case "text":
-              return m.role === "user" ? (
-                <Fragment key={key}>{part.text}</Fragment>
-              ) : (
-                <MessageResponse
-                  key={key}
-                  className={cn(
-                    status === "streaming" &&
-                      m.id === last?.id &&
-                      index === m.parts.length - 1 &&
-                      "caret",
-                  )}
-                >
-                  {part.text}
-                </MessageResponse>
-              );
-            default:
-              // Reasoning, tool calls, files, etc. aren't shown in the transcript.
-              return null;
-          }
-        });
-        if (m.role === "user") {
-          return (
-            <h2
-              key={m.id}
-              className={cn(
-                "text-cobalt text-xl leading-snug font-semibold tracking-[-0.01em] sm:text-2xl",
-                i > 0 && "mt-10 border-t pt-10",
-              )}
-            >
-              {parts}
-            </h2>
-          );
-        }
-        return (
-          <div key={m.id} className="mt-4 text-[17px] leading-relaxed">
-            {parts}
-          </div>
-        );
-      })}
+      {messages.map((message, index) => (
+        <Message
+          key={message.id}
+          message={message}
+          isFirst={index === 0}
+          isLoading={status === "streaming" && index === messages.length - 1}
+        />
+      ))}
 
-      {waiting && (
-        <p className="text-slate caret mt-4 text-[17px]" aria-live="polite">
-          <span>Reading the resume</span>
-        </p>
-      )}
+      {status === "submitted" && messages.at(-1)?.role !== "assistant" && <ThinkingMessage />}
 
       {error && (
         <div className="text-danger mt-4 text-[17px]" role="alert">
@@ -324,6 +270,106 @@ function Transcript({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function Message({
+  message,
+  isFirst,
+  isLoading,
+}: {
+  message: UIMessage;
+  isFirst: boolean;
+  isLoading: boolean;
+}) {
+  const hasAnyContent = message.parts.some(
+    (part) => (part.type === "text" || part.type === "reasoning") && part.text.trim().length > 0,
+  );
+  const isThinking = message.role === "assistant" && isLoading && !hasAnyContent;
+
+  const parts = message.parts.map((part, index) => {
+    const key = `message-${message.id}-part-${index}`;
+    switch (part.type) {
+      case "reasoning":
+        // Only the part still streaming shows the indicator.
+        return <MessageReasoning key={key} isLoading={isLoading && part.state === "streaming"} />;
+      case "text":
+        return message.role === "user" ? (
+          <Fragment key={key}>{part.text}</Fragment>
+        ) : (
+          <MessageResponse
+            key={key}
+            className={cn(isLoading && index === message.parts.length - 1 && "caret")}
+          >
+            {part.text}
+          </MessageResponse>
+        );
+      default:
+        // Tool calls, files, etc. aren't shown in the transcript.
+        return null;
+    }
+  });
+
+  if (message.role === "user") {
+    return (
+      <h2
+        className={cn(
+          "text-cobalt text-xl leading-snug font-semibold tracking-[-0.01em] sm:text-2xl",
+          !isFirst && "mt-10 border-t pt-10",
+        )}
+      >
+        {parts}
+      </h2>
+    );
+  }
+  return (
+    <div className="mt-4 text-[17px] leading-relaxed">
+      {isThinking ? <Thinking labels={READING_LABELS} /> : parts}
+    </div>
+  );
+}
+
+/** Shown before the assistant message exists. */
+function ThinkingMessage() {
+  return (
+    <div className="mt-4 text-[17px]">
+      <Thinking labels={READING_LABELS} />
+    </div>
+  );
+}
+
+/** The model's reasoning isn't displayed; only that it's happening. */
+function MessageReasoning({ isLoading }: { isLoading: boolean }) {
+  return isLoading ? <Thinking labels={REASONING_LABELS} /> : null;
+}
+
+const READING_LABELS = ["Reading the resume"];
+// Rotated while the model reasons, so long waits feel alive.
+const REASONING_LABELS = ["Thinking it over", "Connecting the dots", "Picking the best examples"];
+
+/** A tiny resume whose lines get highlighted one by one while the answer is on its way. */
+function Thinking({ labels }: { labels: string[] }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (labels.length < 2) return;
+    const id = setInterval(() => setTick((t) => t + 1), 2400);
+    return () => clearInterval(id);
+  }, [labels]);
+
+  const label = labels[tick % labels.length];
+
+  return (
+    <div className="flex items-center gap-3" role="status" aria-live="polite">
+      <span className="resume-sheet" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+      </span>
+      <span key={label} className="thinking-label">
+        {label}
+      </span>
     </div>
   );
 }

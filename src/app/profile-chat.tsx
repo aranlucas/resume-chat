@@ -1,28 +1,15 @@
 "use client";
 
+import { MessageResponse } from "@/components/message-response";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { STARTERS, type Profile, type Role } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useRef, useState } from "react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Fragment, useRef, useState } from "react";
 
-const textOf = (message: UIMessage) => {
-  let text = "";
-  for (const part of message.parts) {
-    switch (part.type) {
-      case "text":
-        text += part.text;
-        break;
-      default:
-        // Reasoning, tool calls, files, etc. aren't shown in the transcript.
-        break;
-    }
-  }
-  return text;
-};
+const hasContent = (message: UIMessage) =>
+  message.parts.some((part) => part.type === "text" && part.text.trim().length > 0);
 
 // Keep the newest text in view as the transcript grows while an answer streams in.
 const followLatest = (node: HTMLDivElement | null) => {
@@ -266,13 +253,41 @@ function Transcript({
   error: Error | undefined;
   onRetry: () => void;
 }) {
-  const last = messages[messages.length - 1];
-  const waiting = status === "submitted" || (status === "streaming" && !textOf(last));
+  const last = messages.at(-1);
+  const isLoading = status === "submitted" || status === "streaming";
+  // Waiting until the answer has something to show: the request is out and no
+  // assistant message exists yet, or it exists but has no text so far.
+  const waiting =
+    (status === "submitted" && last?.role !== "assistant") ||
+    (isLoading && last?.role === "assistant" && !hasContent(last));
 
   return (
     <div ref={followLatest} className="flex scroll-mb-32 flex-col pt-4 pb-8 lg:scroll-mb-0">
       {messages.map((m, i) => {
-        const text = textOf(m);
+        const parts = m.parts.map((part, index) => {
+          const key = `${m.id}-part-${index}`;
+          switch (part.type) {
+            case "text":
+              return m.role === "user" ? (
+                <Fragment key={key}>{part.text}</Fragment>
+              ) : (
+                <MessageResponse
+                  key={key}
+                  className={cn(
+                    status === "streaming" &&
+                      m.id === last?.id &&
+                      index === m.parts.length - 1 &&
+                      "caret",
+                  )}
+                >
+                  {part.text}
+                </MessageResponse>
+              );
+            default:
+              // Reasoning, tool calls, files, etc. aren't shown in the transcript.
+              return null;
+          }
+        });
         if (m.role === "user") {
           return (
             <h2
@@ -282,17 +297,13 @@ function Transcript({
                 i > 0 && "mt-10 border-t pt-10",
               )}
             >
-              {text}
+              {parts}
             </h2>
           );
         }
-        const streaming = status === "streaming" && m.id === last.id;
         return (
-          <div
-            key={m.id}
-            className={cn("answer mt-4 text-[17px] leading-relaxed", streaming && "caret")}
-          >
-            <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+          <div key={m.id} className="mt-4 text-[17px] leading-relaxed">
+            {parts}
           </div>
         );
       })}

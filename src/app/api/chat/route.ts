@@ -23,23 +23,18 @@ export async function POST(req: Request) {
   }
 
   const { messages }: { messages: UIMessage[] } = await req.json();
-  // Reasoning is streamed only so the client can show a "thinking" state; it
-  // isn't displayed, and there's no need to send it back to the model.
-  const history = messages.map((m) => ({
-    ...m,
-    parts: m.parts.filter((part) => part.type !== "reasoning"),
-  }));
 
   const result = streamText({
     model: openrouter.chat(process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL),
     instructions: await getSystemPrompt(),
-    messages: await convertToModelMessages(history),
+    messages: await convertToModelMessages(messages),
     abortSignal: req.signal,
   });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
+      // The client shows a "thinking" state while reasoning streams.
       sendReasoning: true,
       onError: () => "The assistant is temporarily unavailable. Please try again in a moment.",
     }),

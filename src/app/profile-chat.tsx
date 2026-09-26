@@ -9,11 +9,20 @@ import { useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-const textOf = (message: UIMessage) =>
-  message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
+const textOf = (message: UIMessage) => {
+  let text = "";
+  for (const part of message.parts) {
+    switch (part.type) {
+      case "text":
+        text += part.text;
+        break;
+      default:
+        // Reasoning, tool calls, files, etc. aren't shown in the transcript.
+        break;
+    }
+  }
+  return text;
+};
 
 // Keep the newest text in view as the transcript grows while an answer streams in.
 const followLatest = (node: HTMLDivElement | null) => {

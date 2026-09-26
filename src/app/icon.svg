@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Ask Lucas</title>
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <path d="M14 18.5A6.5 6.5 0 0 1 20.5 12h27A6.5 6.5 0 0 1 54 18.5v19a6.5 6.5 0 0 1-6.5 6.5H31l-10.5 8v-8h0A6.5 6.5 0 0 1 14 37.5Z" fill="#2563eb"/>
+  <path d="M23 25h19M23 33h12" fill="none" stroke="#eff6ff" stroke-width="4" stroke-linecap="round"/>
+  <path d="m41 39 7 7" fill="none" stroke="#bfdbfe" stroke-width="4" stroke-linecap="round"/>
+</svg>

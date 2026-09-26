@@ -25,6 +25,7 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messageCount = messages.length;
+  const isLoading = status === "submitted" || status === "streaming";
 
   // Keep the latest message visible as the conversation grows or streams in.
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function Home() {
                     onClick={() => {
                       sendMessage({ text: suggestion });
                     }}
-                    disabled={status !== "ready"}
+                    disabled={isLoading}
                     className="group bg-muted/60 hover:bg-muted flex items-start gap-2 rounded-xl border p-3 text-left text-sm transition-colors disabled:opacity-50"
                   >
                     <Icon
@@ -81,7 +82,7 @@ export default function Home() {
                 </span>
               </Message>
             ))}
-            {(status === "submitted" || status === "streaming") && (
+            {isLoading && (
               <div className="text-muted-foreground flex items-center gap-3 text-sm">
                 {status === "submitted" && (
                   <span className="flex items-center gap-2">
@@ -96,7 +97,7 @@ export default function Home() {
             )}
             {error && (
               <div className="bg-destructive/10 text-destructive rounded-xl border p-3 text-sm">
-                An error occurred.{" "}
+                {error.message}{" "}
                 <button
                   type="button"
                   onClick={() => regenerate()}
@@ -128,12 +129,12 @@ export default function Home() {
             className="h-11 rounded-full px-5"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={status !== "ready"}
+            disabled={isLoading}
             autoComplete="off"
           />
           <Button
             type="submit"
-            disabled={status !== "ready"}
+            disabled={isLoading || !input.trim()}
             className="h-11 shrink-0 rounded-full px-5 font-semibold"
           >
             Send

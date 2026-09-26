@@ -8,8 +8,9 @@ the LaTeX source in `~/Projects/resume/Lucas_Arango_Resume.tex` into
 
 ## Setup
 
-1. Get a free API key at https://openrouter.ai/keys (free `:free` models cost
-   nothing; new accounts get 50 requests/day, 1,000/day after $10 in credits).
+1. Create a dedicated API key at https://openrouter.ai/keys. The default
+   `openrouter/free` router uses available free models; set a $0 credit limit
+   on the key to prevent paid usage. Free models have provider rate limits.
 2. Copy the env template and fill it in:
 
 ```bash
@@ -30,7 +31,24 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable           | Required | Default                     | Description                                  |
 | ------------------ | -------- | --------------------------- | -------------------------------------------- |
 | `OPENROUTER_API_KEY` | Yes      | —                           | OpenRouter API key                           |
-| `OPENROUTER_MODEL`   | No       | `openai/gpt-oss-120b:free`  | Any OpenRouter model id, e.g. `openrouter/free` for the auto-router. See https://openrouter.ai/collections/free-models |
+| `OPENROUTER_MODEL`   | No       | `openrouter/free`           | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
+
+## Vercel deployment
+
+The existing project is `aranlucas-projects/resume-chat`, served at
+[hire-lucas.vercel.app](https://hire-lucas.vercel.app/).
+
+1. Link this checkout: `vercel link --project resume-chat --scope aranlucas-projects`.
+2. Set `OPENROUTER_API_KEY` as a server-only secret for Production, Preview,
+   and Development in the project's environment settings. Set
+   `OPENROUTER_MODEL` to `openrouter/free` for those environments.
+3. Deploy with `vercel deploy --prod`. Environment changes require a new
+   deployment to take effect.
+4. Ask a question on the live site and confirm a complete answer streams.
+
+For local development, pull the Development environment with
+`vercel env pull .env.local`. Keep `.env.local` untracked. The current app
+does not require OpenAI or Pinecone environment variables.
 
 To refresh the assistant's knowledge, edit `src/lib/resume.ts` to match the
 latest LaTeX resume.

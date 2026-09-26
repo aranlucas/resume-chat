@@ -30,7 +30,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable           | Required | Default                     | Description                                  |
 | ------------------ | -------- | --------------------------- | -------------------------------------------- |
 | `OPENROUTER_API_KEY` | Yes      | —                           | OpenRouter API key                           |
-| `REVALIDATE_SECRET`  | No       | —                           | Bearer token the resume repo's deploy sends to `/api/revalidate` |
 | `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
 | `OPENROUTER_MODEL`   | No       | `openrouter/free`           | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
 
@@ -58,8 +57,7 @@ The resume lives in [aranlucas/resume](https://github.com/aranlucas/resume) as a
 [resume-api.aranlucas.workers.dev](https://resume-api.aranlucas.workers.dev/).
 `src/lib/resume.ts` fetches `resume.md` (the assistant's system prompt) and
 `resume.json` (the page's experience timeline) with a 30-day cache tagged
-`resume`. The resume repo's deploy calls `POST /api/revalidate` with
-`Authorization: Bearer $REVALIDATE_SECRET` to refresh both right away. To update
+`resume`. The resume repo's deploy calls `POST /api/revalidate` to refresh both right away. To update
 the resume, edit it there.
 
 ## Verify

@@ -1,0 +1,186 @@
+{
+  "name": "Lucas Arango",
+  "contact": [
+    {
+      "label": "linkedin.com/in/lucasarango",
+      "href": "https://linkedin.com/in/lucasarango"
+    },
+    {
+      "label": "github.com/aranlucas",
+      "href": "https://github.com/aranlucas"
+    },
+    {
+      "label": "lucasarango.space",
+      "href": "https://www.lucasarango.space"
+    }
+  ],
+  "summary": "Senior software engineer with 10+ years at DoorDash, AWS, and Amazon, building AI agent platforms and cloud services. Led Ask DoorDash's grocery agent from prototype to launch; built shared agent infrastructure and set reliability standards across teams.",
+  "experience": [
+    {
+      "company": "DoorDash",
+      "location": "Seattle, WA",
+      "title": "Senior Software Engineer",
+      "dates": "Oct 2023 – Aug 2026",
+      "bullets": [
+        {
+          "md": "Prototyped and led engineering for [**Ask DoorDash**](https://careersatdoordash.com/blog/building-doordash-assistant-an-engineering-overview/)'s grocery agent, launched June 2026. It converts recipe links and photos into personalized carts across roughly 800,000 products, increasing average order totals.",
+          "text": "Prototyped and led engineering for Ask DoorDash's grocery agent, launched June 2026. It converts recipe links and photos into personalized carts across roughly 800,000 products, increasing average order totals.",
+          "links": [
+            {
+              "label": "Ask DoorDash",
+              "href": "https://careersatdoordash.com/blog/building-doordash-assistant-an-engineering-overview/"
+            }
+          ]
+        },
+        {
+          "md": "Owned New Verticals agent infrastructure and reliability, including the grocery agent and shared Model Context Protocol (MCP) tools used by the restaurant agent, DoorDash's ChatGPT integration, and developer CLI.",
+          "text": "Owned New Verticals agent infrastructure and reliability, including the grocery agent and shared Model Context Protocol (MCP) tools used by the restaurant agent, DoorDash's ChatGPT integration, and developer CLI.",
+          "links": []
+        },
+        {
+          "md": "Wrote the agent-platform strategy and secured leadership support to expand from external MCP grocery ordering to the in-app Assistant, coordinating delivery across engineering, ML, product, and design.",
+          "text": "Wrote the agent-platform strategy and secured leadership support to expand from external MCP grocery ordering to the in-app Assistant, coordinating delivery across engineering, ML, product, and design.",
+          "links": []
+        },
+        {
+          "md": "Built DashMart's integration-test framework on isolated test tenants and migrated execution from Jenkins to Buildkite on Kubernetes. Set org-wide performance standards with golden-path SLOs and blocking CI regression gates.",
+          "text": "Built DashMart's integration-test framework on isolated test tenants and migrated execution from Jenkins to Buildkite on Kubernetes. Set org-wide performance standards with golden-path SLOs and blocking CI regression gates.",
+          "links": []
+        },
+        {
+          "md": "Mentored New Verticals engineers on agent architecture and MCP tool design. Drove adoption of Claude Code and Codex with architecture and security review before merge.",
+          "text": "Mentored New Verticals engineers on agent architecture and MCP tool design. Drove adoption of Claude Code and Codex with architecture and security review before merge.",
+          "links": []
+        }
+      ]
+    },
+    {
+      "company": "Amazon Web Services (AWS)",
+      "location": "Seattle, WA",
+      "title": "Software Development Engineer – AWS IoT",
+      "dates": "Jul 2019 – Jul 2022",
+      "bullets": [
+        {
+          "md": "Built the AWS IoT SiteWise Monitor control plane (Go, DynamoDB, API Gateway), announced at re:Invent; led operational readiness review and launched the service to general availability.",
+          "text": "Built the AWS IoT SiteWise Monitor control plane (Go, DynamoDB, API Gateway), announced at re:Invent; led operational readiness review and launched the service to general availability.",
+          "links": []
+        },
+        {
+          "md": "Cut AWS IoT Console release lead time from weeks to days by leading the Angular-to-React migration and establishing microfrontends with independent CDK deployment pipelines for 5+ sub-teams.",
+          "text": "Cut AWS IoT Console release lead time from weeks to days by leading the Angular-to-React migration and establishing microfrontends with independent CDK deployment pipelines for 5+ sub-teams.",
+          "links": []
+        },
+        {
+          "md": "Designed SSO federation for SiteWise Monitor and built Synthetics canaries that caught console regressions before release.",
+          "text": "Designed SSO federation for SiteWise Monitor and built Synthetics canaries that caught console regressions before release.",
+          "links": []
+        }
+      ]
+    },
+    {
+      "company": "Amazon",
+      "location": "Seattle, WA",
+      "title": "Software Development Engineer – Compliance Technologies",
+      "dates": "Jul 2015 – Jul 2019",
+      "bullets": [
+        {
+          "md": "Built a case-management platform for anti-money-laundering and identity-theft investigations using Ruby on Rails and Java Spring, with end-to-end encryption, granular access controls, and audit logging.",
+          "text": "Built a case-management platform for anti-money-laundering and identity-theft investigations using Ruby on Rails and Java Spring, with end-to-end encryption, granular access controls, and audit logging.",
+          "links": []
+        },
+        {
+          "md": "Led design and development of suspicious-transaction reporting (STR/SAR) systems for the Luxembourg Financial Intelligence Unit and UK National Crime Agency, meeting requirements for Amazon payments in both markets.",
+          "text": "Led design and development of suspicious-transaction reporting (STR/SAR) systems for the Luxembourg Financial Intelligence Unit and UK National Crime Agency, meeting requirements for Amazon payments in both markets.",
+          "links": []
+        }
+      ]
+    },
+    {
+      "company": "Earlier Experience",
+      "location": "Seattle, WA / Sunrise, FL",
+      "title": "Amazon SDE Intern; BlackBerry SDE Intern",
+      "dates": "2013 – 2014",
+      "bullets": [
+        {
+          "md": "Integrated Kindle Unlimited books into Goodreads; tested BlackBerry handheld software (smoke, regression, GUI).",
+          "text": "Integrated Kindle Unlimited books into Goodreads; tested BlackBerry handheld software (smoke, regression, GUI).",
+          "links": []
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Multi-Agent Platform",
+      "url": "https://github.com/aranlucas/agents",
+      "kind": "Personal Project",
+      "bullets": [
+        {
+          "md": "Build and operate Go agents with Google ADK behind a Go gateway on Railway, using Cloudflare D1 for sessions and R2 for artifacts; Next.js/CopilotKit and Expo clients share agent state through AG-UI streaming.",
+          "text": "Build and operate Go agents with Google ADK behind a Go gateway on Railway, using Cloudflare D1 for sessions and R2 for artifacts; Next.js/CopilotKit and Expo clients share agent state through AG-UI streaming.",
+          "links": []
+        },
+        {
+          "md": "Built a wellness agent that delegates to grocery and fitness agents through Google ADK task orchestration and shared typed state. The platform's grocery agent inspired the Ask DoorDash prototype.",
+          "text": "Built a wellness agent that delegates to grocery and fitness agents through Google ADK task orchestration and shared typed state. The platform's grocery agent inspired the Ask DoorDash prototype.",
+          "links": []
+        }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "school": "University of Florida",
+      "location": "Gainesville, FL",
+      "degree": "B.S., Computer Engineering, cum laude",
+      "dates": "May 2015"
+    }
+  ],
+  "skills": [
+    {
+      "category": "Languages",
+      "items": [
+        "Java",
+        "Kotlin",
+        "TypeScript",
+        "Go",
+        "Python",
+        "Ruby",
+        "SQL"
+      ]
+    },
+    {
+      "category": "Platforms",
+      "items": [
+        "AWS",
+        "CDK",
+        "DynamoDB",
+        "Cloudflare D1/R2",
+        "Docker",
+        "Kubernetes",
+        "Buildkite"
+      ]
+    },
+    {
+      "category": "Web/Mobile",
+      "items": [
+        "React",
+        "Next.js",
+        "Expo",
+        "Java Spring",
+        "Ruby on Rails"
+      ]
+    },
+    {
+      "category": "AI/Agents",
+      "items": [
+        "Google ADK",
+        "MCP",
+        "AG-UI",
+        "CopilotKit",
+        "Claude Code",
+        "Codex"
+      ]
+    }
+  ]
+}

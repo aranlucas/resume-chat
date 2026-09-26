@@ -2,9 +2,8 @@
 
 A Next.js chat interface that answers questions about Lucas Arango's resume.
 Built on the latest Vercel AI SDK (v7) with a free model via OpenRouter —
-no vector database or paid embeddings required. The resume (transcribed from
-the LaTeX source in `~/Projects/resume/Lucas_Arango_Resume.tex` into
-`src/lib/resume.ts`) is injected directly into the system prompt.
+no vector database or paid embeddings required. The resume is injected
+directly into the system prompt.
 
 ## Setup
 
@@ -50,8 +49,15 @@ For local development, pull the Development environment with
 `vercel env pull .env.local`. Keep `.env.local` untracked. The current app
 does not require OpenAI or Pinecone environment variables.
 
-To refresh the assistant's knowledge, edit `src/lib/resume.ts` to match the
-latest LaTeX resume.
+## Resume source
+
+The resume lives in [aranlucas/resume](https://github.com/aranlucas/resume) as
+LaTeX, which publishes a private-info-free `resume.md` to
+[resume-api.aranlucas.workers.dev](https://resume-api.aranlucas.workers.dev/).
+`scripts/sync-resume.mts` pulls it into `src/generated/` before every build
+(`prebuild`), and `.github/workflows/sync-resume.yml` pulls it daily and commits
+any change, which redeploys the site. To update the resume, edit the LaTeX, not
+`src/generated/`. Run `pnpm sync-resume` to pull it manually.
 
 ## Verify
 

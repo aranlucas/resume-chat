@@ -1,0 +1,28 @@
+name: Sync resume
+
+# Pulls the latest resume from github.com/aranlucas/resume (resume-api.aranlucas.workers.dev) and
+# commits it when it changed; the push redeploys the site on Vercel.
+on:
+  schedule:
+    - cron: "17 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: node scripts/sync-resume.mts
+      - name: Commit if changed
+        run: |
+          git add src/generated
+          if git diff --cached --quiet; then echo "Resume unchanged"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore: sync resume from aranlucas/resume"
+          git push

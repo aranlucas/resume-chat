@@ -1,6 +1,6 @@
 /**
  * Structured highlights from the resume, used by the page itself.
- * Keep in sync with RESUME_CONTEXT in ./resume.ts.
+ * Keep in sync with the resume in github.com/aranlucas/resume.
  */
 export const PROFILE = {
   name: "Lucas Arango",

@@ -35,12 +35,14 @@ export type JsonResume = {
   }[];
 };
 
+function isJsonResume(value: unknown): value is JsonResume {
+  return typeof value === "object" && value !== null && "basics" in value && "work" in value;
+}
+
 export async function getResume(): Promise<JsonResume> {
   const data: unknown = await (await fetchResumeFile("resume.json")).json();
-  if (typeof data !== "object" || data === null || !("basics" in data) || !("work" in data)) {
-    throw new Error(`${RESUME_API}/resume.json is not a JSON Resume`);
-  }
-  return data as JsonResume;
+  if (!isJsonResume(data)) throw new Error(`${RESUME_API}/resume.json is not a JSON Resume`);
+  return data;
 }
 
 /**

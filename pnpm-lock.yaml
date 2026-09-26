@@ -178,6 +178,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       oxfmt:
         specifier: ^0.70.0

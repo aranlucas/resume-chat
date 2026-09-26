@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { PROFILE } from "@/lib/profile";
 
 // The resume is published from github.com/aranlucas/resume as JSON Resume
@@ -18,31 +20,38 @@ async function fetchResumeFile(file: string): Promise<Response> {
   return res;
 }
 
-/** The subset of JSON Resume this app reads. Dates are always "YYYY-MM". */
-export type JsonResume = {
-  basics: {
-    name: string;
-    location: { city: string };
-    profiles: { network: string; url: string }[];
-  };
-  work: { name: string; position: string; startDate: string; endDate?: string }[];
-  education: {
-    institution: string;
-    studyType: string;
-    area: string;
-    score: string;
-    endDate: string;
-  }[];
-};
+const YearMonth = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "expected YYYY-MM");
 
-function isJsonResume(value: unknown): value is JsonResume {
-  return typeof value === "object" && value !== null && "basics" in value && "work" in value;
-}
+/** The subset of JSON Resume (https://jsonresume.org/schema) this app reads. */
+const JsonResume = z.object({
+  basics: z.object({
+    name: z.string(),
+    location: z.object({ city: z.string() }),
+    profiles: z.array(z.object({ network: z.string(), url: z.url() })),
+  }),
+  work: z.array(
+    z.object({
+      name: z.string(),
+      position: z.string(),
+      startDate: YearMonth,
+      endDate: YearMonth.optional(),
+    }),
+  ),
+  education: z.array(
+    z.object({
+      institution: z.string(),
+      studyType: z.string(),
+      area: z.string(),
+      score: z.string(),
+      endDate: YearMonth,
+    }),
+  ),
+});
+
+export type JsonResume = z.infer<typeof JsonResume>;
 
 export async function getResume(): Promise<JsonResume> {
-  const data: unknown = await (await fetchResumeFile("resume.json")).json();
-  if (!isJsonResume(data)) throw new Error(`${RESUME_API}/resume.json is not a JSON Resume`);
-  return data;
+  return JsonResume.parse(await (await fetchResumeFile("resume.json")).json());
 }
 
 /**

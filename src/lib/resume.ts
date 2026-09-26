@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { PROFILE } from "@/lib/profile";
-
 // The resume is published from github.com/aranlucas/resume as JSON Resume
 // (https://jsonresume.org/schema) plus a Markdown rendering. Both are cached
 // for 30 days; the resume repo's deploy calls /api/revalidate to refresh sooner.
@@ -67,12 +65,11 @@ Guidelines:
 - If a question goes beyond the resume, say so honestly and offer what you can infer from related experience. Do not invent employers, dates, or metrics.
 - Keep answers concise (2-6 sentences for simple questions). Use short bullet lists for skills, experience, or project questions.
 - Speak as an assistant describing Lucas in third person.
-- If asked for contact info, share the links and email in the resume.
+- If asked for contact info, share the profile links in the resume. Do not share an email address or phone number.
 - The people reading are usually recruiters and hiring managers. Lead with outcomes and scope, and connect experience to what the asker seems to be hiring for.
 - Format with light Markdown: **bold** for company or project names, short bullet lists. No headings or tables.
 
 Resume:
 ${resume}
-Contact email: ${PROFILE.email}
 `;
 }

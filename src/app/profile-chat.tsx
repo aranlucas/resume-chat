@@ -11,10 +11,12 @@ import { STARTERS, type Profile, type Role } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 const hasContent = (message: UIMessage) =>
   message.parts.some((part) => part.type === "text" && part.text.trim().length > 0);
+
+const isReasoning = (message: UIMessage) => message.parts.some((part) => part.type === "reasoning");
 
 export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[] }) {
   const { messages, setMessages, sendMessage, status, stop, error, regenerate } = useChat({
@@ -178,9 +180,6 @@ function ProfilePanel({
       </p>
 
       <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <a href={`mailto:${profile.email}`} className="hover:text-cobalt font-semibold">
-          {profile.email}
-        </a>
         {profile.links.map((l) => (
           <a key={l.label} href={l.href} className="text-slate hover:text-cobalt">
             {l.label}
@@ -310,11 +309,7 @@ function Transcript({
         );
       })}
 
-      {waiting && (
-        <p className="text-slate caret mt-4 text-[17px]" aria-live="polite">
-          <span>Reading the resume</span>
-        </p>
-      )}
+      {waiting && <Thinking reasoning={last?.role === "assistant" && isReasoning(last)} />}
 
       {error && (
         <div className="text-danger mt-4 text-[17px]" role="alert">
@@ -324,6 +319,35 @@ function Transcript({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// Shown once the model starts reasoning, rotating so long waits feel alive.
+const THINKING_LABELS = ["Thinking it over", "Connecting the dots", "Picking the best examples"];
+
+/** A tiny resume whose lines get highlighted one by one while the answer is on its way. */
+function Thinking({ reasoning }: { reasoning: boolean }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!reasoning) return;
+    const id = setInterval(() => setTick((t) => t + 1), 2400);
+    return () => clearInterval(id);
+  }, [reasoning]);
+
+  const label = reasoning ? THINKING_LABELS[tick % THINKING_LABELS.length] : "Reading the resume";
+
+  return (
+    <div className="mt-4 flex items-center gap-3 text-[17px]" role="status" aria-live="polite">
+      <span className="resume-sheet" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+      </span>
+      <span key={label} className="thinking-label">
+        {label}
+      </span>
     </div>
   );
 }

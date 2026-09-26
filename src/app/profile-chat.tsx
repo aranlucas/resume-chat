@@ -302,6 +302,8 @@ function Transcript({
             </h2>
           );
         }
+        // Until text arrives, the loading state stands in for the answer.
+        if (!hasContent(m)) return null;
         return (
           <div key={m.id} className="mt-4 text-[17px] leading-relaxed">
             {parts}

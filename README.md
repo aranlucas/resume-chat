@@ -1,9 +1,15 @@
 # Resume Chat
 
-A Next.js chat interface that answers questions about Lucas Arango's resume.
-Built on the latest Vercel AI SDK (v7) with a free model via OpenRouter —
-no vector database or paid embeddings required. The resume is injected
-directly into the system prompt.
+Resume Chat is a small Next.js site that lets a recruiter or collaborator ask
+natural-language questions about Lucas Arango's public resume. Answers stream
+from an OpenRouter chat model whose context is the published resume; the site
+does not need a vector database or a separate embedding pipeline.
+
+Try the deployed app at [hire-lucas.vercel.app](https://hire-lucas.vercel.app/).
+
+The public resume service is the source of truth. This application is a
+presentation and question-answering layer, so generated answers should be
+checked against the source resume before they are used for a hiring decision.
 
 ## Setup
 
@@ -68,3 +74,37 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+## How the request flows
+
+```mermaid
+flowchart LR
+  Browser[Resume Chat UI] --> Route[src/app/api/chat/route.ts]
+  Route --> Resume[src/lib/resume.ts]
+  Resume --> API[Public resume API]
+  Route --> OpenRouter[OpenRouter model]
+  OpenRouter --> Route
+  Route --> Browser
+```
+
+Resume text and JSON are cached for 30 days with the `resume` cache tag. The
+resume repository can call `POST /api/revalidate` after publishing to refresh
+the cached content. The chat route validates the incoming request and returns
+an error when the server key is missing.
+
+## Source map
+
+- `src/app/page.tsx` and `src/app/profile-chat.tsx` compose the landing page.
+- `src/components/conversation.tsx` and `message-response.tsx` render the
+  streaming conversation.
+- `src/app/api/chat/route.ts` calls the AI SDK with the resume context.
+- `src/lib/resume.ts` fetches and validates the public resume documents.
+- `src/app/api/revalidate/route.ts` accepts the cache refresh webhook.
+- `.env.template` lists the supported runtime settings.
+
+## Status and boundaries
+
+This is a focused portfolio demo backed by a public resume endpoint. It has no
+account system, private resume source, conversation database, or paid-model
+requirement. Model availability, rate limits, and the freshness of the public
+resume service can affect responses.

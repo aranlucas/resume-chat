@@ -1,9 +1,19 @@
-# Resume Chat
+<p align="center">
+  <img src="src/app/apple-icon.png" alt="Resume Chat icon" width="96" />
+</p>
 
-Resume Chat is a small Next.js site that lets a recruiter or collaborator ask
-natural-language questions about Lucas Arango's public resume. Answers stream
-from an OpenRouter chat model whose context is the published resume; the site
-does not need a vector database or a separate embedding pipeline.
+# Resume Chat · Ask the resume, skip the PDF hunt
+
+[![CI](https://github.com/aranlucas/resume-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/aranlucas/resume-chat/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/aranlucas/resume-chat)](LICENSE)
+
+Resume Chat turns Lucas Arango's public resume into a quick conversation. A
+recruiter or collaborator can ask a plain-language question and watch an
+OpenRouter answer stream back with the published resume in context—no vector
+database or embedding pipeline required.
+
+> **Try the useful question:** “What did Lucas build with Go?” Ask it, get a
+> grounded answer, then open the source resume when the detail matters.
 
 Try the deployed app at [hire-lucas.vercel.app](https://hire-lucas.vercel.app/).
 

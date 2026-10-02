@@ -5,17 +5,22 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/conversation";
-import { MessageResponse } from "@/components/message-response";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Profile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
+import dynamic from "next/dynamic";
 import { Fragment, useEffect, useRef, useState } from "react";
+
+const loadMessageResponse = () =>
+  import("@/components/message-response").then((module) => module.MessageResponse);
+const MessageResponse = dynamic(loadMessageResponse);
 
 export function ProfileChat({ profile }: { profile: Profile }) {
   const { messages, setMessages, sendMessage, status, stop, error, regenerate } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
+    throttle: 50,
   });
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -25,6 +30,8 @@ export function ProfileChat({ profile }: { profile: Profile }) {
 
   const ask = (text: string) => {
     if (!text.trim() || isLoading) return;
+    // Load Markdown while the model prepares its answer.
+    void loadMessageResponse();
     sendMessage({ text: text.trim() });
     setInput("");
   };

@@ -79,6 +79,7 @@ test("valid history streams follow-up answers and rejects assistant continuation
   let providerBody:
     | {
         model: string;
+        provider: { sort: string };
         messages: { role: string; content: unknown }[];
       }
     | undefined;
@@ -126,6 +127,7 @@ test("valid history streams follow-up answers and rejects assistant continuation
   assert.match(stream, /"type":"finish"/);
   assert.doesNotMatch(stream, /"type":"error"/);
   assert.equal(providerBody?.model, "openrouter/free");
+  assert.equal(providerBody?.provider.sort, "latency");
   assert.deepEqual(
     providerBody?.messages.map((message) => message.role),
     ["system", "user", "assistant", "user"],

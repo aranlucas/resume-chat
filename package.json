@@ -11,7 +11,7 @@
     "format": "oxfmt --write src/ scripts/",
     "format:check": "oxfmt --check src/ scripts/",
     "start": "next start",
-    "test": "node --test --test-concurrency=1 src/lib/*.test.mjs",
+    "test": "node --test --test-concurrency=1 src/lib/*.test.mjs && tsx --test src/lib/*.test.ts src/app/api/chat/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -44,6 +44,7 @@
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
     "postcss": "^8.5.28",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "packageManager": "pnpm@12.6.0"

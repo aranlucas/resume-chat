@@ -1,6 +1,6 @@
-import type { JsonResume } from "@/lib/resume";
+import { getResume, type JsonResume } from "@/lib/resume";
 
-export interface Role {
+interface Role {
   years: string;
   company: string;
   role: string;
@@ -34,18 +34,21 @@ const year = (yearMonth: string) => yearMonth.slice(0, 4);
 const highlight = (name: string) =>
   HIGHLIGHTS[name] ?? { note: "", question: `What did Lucas do at ${name}?` };
 
-export function toProfile(resume: JsonResume) {
+/** Fetch and project the public resume into the data the page displays. */
+export async function getProfile() {
+  const resume = await getResume();
   return {
     name: resume.basics.name,
     location: resume.basics.location.city,
     links: resume.basics.profiles.map((p) => ({ label: p.network, href: p.url })),
+    roles: toRoles(resume),
   };
 }
 
-export type Profile = ReturnType<typeof toProfile>;
+export type Profile = Awaited<ReturnType<typeof getProfile>>;
 
 /** Full-time roles and education; internships are left off the timeline. */
-export function toRoles(resume: JsonResume): Role[] {
+function toRoles(resume: JsonResume): Role[] {
   const jobs = resume.work
     .filter((job) => !/\bIntern$/.test(job.position))
     .map((job) => ({
@@ -62,10 +65,3 @@ export function toRoles(resume: JsonResume): Role[] {
   }));
   return [...jobs, ...schools];
 }
-
-export const STARTERS = [
-  "Why would Lucas be a strong hire for an AI agents team?",
-  "How did the Ask DoorDash grocery agent go from prototype to launch?",
-  "What's his experience with MCP and agent infrastructure?",
-  "What languages and platforms does he work in?",
-];

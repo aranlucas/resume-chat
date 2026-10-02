@@ -86,8 +86,8 @@ pnpm test
 pnpm build:test
 ```
 
-`pnpm test` exercises request validation, cancellation, provider failures, and
-Stop/New conversation flows with mocked models and synthetic resume data.
+`pnpm test` exercises profile projection, request validation, cancellation,
+provider failures, and Stop/New conversation flows with mocked models and synthetic resume data.
 `pnpm build:test` (also used by CI) prerenders against a loopback fixture server
 with the model key cleared. Its build output contains a fictional profile and
 is only for verification; use `pnpm build` for a production build.
@@ -116,8 +116,10 @@ flowchart LR
 
 Resume text and JSON are cached for 30 days with the `resume` cache tag. The
 resume repository can call `POST /api/revalidate` after publishing to refresh
-the cached content. The chat route validates the incoming request and returns
-an error when the server key is missing.
+the cached content. The chat route validates supported conversation content with
+Zod and returns 400 for malformed or oversized requests. A missing server key or
+unavailable resume returns 503; model errors during streaming produce a retryable
+error in the chat.
 
 ## Source map
 
@@ -127,6 +129,7 @@ an error when the server key is missing.
 - `src/app/api/chat/route.ts` supplies the production model and resume adapters.
 - `src/lib/chat-answer.ts` owns the bounded request, cancellation, and error contract.
 - `src/lib/resume.ts` fetches and validates the public resume documents.
+- `src/lib/profile.ts` provides the profile and experience timeline ready for the page to render.
 - `src/app/api/revalidate/route.ts` accepts the cache refresh webhook.
 - `.env.template` lists the supported runtime settings.
 

@@ -10,8 +10,9 @@ const RESUME_API = (
   process.env.RESUME_API_URL ?? "https://resume-api.aranlucas.workers.dev"
 ).replace(/\/$/, "");
 
-async function fetchResumeFile(file: string): Promise<Response> {
+async function fetchResumeFile(file: string, signal?: AbortSignal): Promise<Response> {
   const res = await fetch(`${RESUME_API}/${file}`, {
+    signal,
     next: { revalidate: 60 * 60 * 24 * 30, tags: [RESUME_CACHE_TAG] },
   });
   if (!res.ok) throw new Error(`GET ${RESUME_API}/${file} → ${res.status}`);
@@ -56,8 +57,8 @@ export async function getResume(): Promise<JsonResume> {
  * The resume is small enough (~1.5k tokens) to fit directly in the system
  * prompt, so no vector database or paid embeddings are needed.
  */
-export async function getSystemPrompt(): Promise<string> {
-  const resume = await (await fetchResumeFile("resume.md")).text();
+export async function getSystemPrompt(signal?: AbortSignal): Promise<string> {
+  const resume = await (await fetchResumeFile("resume.md", signal)).text();
   return `You are "Ask Lucas", a friendly assistant that answers questions about Lucas Arango's resume and background.
 
 Guidelines:

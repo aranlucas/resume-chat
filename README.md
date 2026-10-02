@@ -82,8 +82,25 @@ the resume, edit it there.
 pnpm format:check
 pnpm lint
 pnpm typecheck
-pnpm build
+pnpm test
+pnpm build:test
 ```
+
+`pnpm test` exercises request validation, cancellation, provider failures, and
+Stop/New conversation flows with mocked models and synthetic resume data.
+`pnpm build:test` (also used by CI) prerenders against a loopback fixture server
+with the model key cleared. Its build output contains a fictional profile and
+is only for verification; use `pnpm build` for a production build.
+
+The public chat endpoint accepts text questions up to 4,000 characters, at most
+40 messages and 48,000 total text/reasoning characters, and a 128 KiB JSON body.
+Assistant history allows text, reasoning, and step markers, including partial
+responses after Stop. Unsupported roles and attachments are rejected. Invalid
+requests return a safe 400 before loading the resume or calling a model.
+Resume loading has a 10-second deadline; generation has a 45-second deadline
+and a 2,048-token output cap. Failures before streaming return a safe 503;
+failures after streaming starts use the same message in the SDK error stream.
+These per-request limits do not replace deployment-level rate limiting.
 
 ## How the request flows
 
@@ -107,7 +124,8 @@ an error when the server key is missing.
 - `src/app/page.tsx` and `src/app/profile-chat.tsx` compose the landing page.
 - `src/components/conversation.tsx` and `message-response.tsx` render the
   streaming conversation.
-- `src/app/api/chat/route.ts` calls the AI SDK with the resume context.
+- `src/app/api/chat/route.ts` supplies the production model and resume adapters.
+- `src/lib/chat-answer.ts` owns the bounded request, cancellation, and error contract.
 - `src/lib/resume.ts` fetches and validates the public resume documents.
 - `src/app/api/revalidate/route.ts` accepts the cache refresh webhook.
 - `.env.template` lists the supported runtime settings.

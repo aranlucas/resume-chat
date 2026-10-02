@@ -5,11 +5,13 @@
   "scripts": {
     "analyze": "cross-env ANALYZE=true next build",
     "build": "next build",
+    "build:test": "node scripts/build-fixture.mjs",
     "dev": "next dev",
     "lint": "oxlint",
-    "format": "oxfmt --write src/",
-    "format:check": "oxfmt --check src/",
+    "format": "oxfmt --write src/ scripts/",
+    "format:check": "oxfmt --check src/ scripts/",
     "start": "next start",
+    "test": "node --test --test-concurrency=1 src/lib/*.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

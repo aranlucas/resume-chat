@@ -13,7 +13,9 @@ export async function POST(req: Request) {
   return answerChat(req, {
     getModel: () =>
       process.env.OPENROUTER_API_KEY?.trim()
-        ? openrouter.chat(process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL)
+        ? openrouter.chat(process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL, {
+            provider: { sort: "latency" },
+          })
         : undefined,
     loadPrompt: getSystemPrompt,
   });

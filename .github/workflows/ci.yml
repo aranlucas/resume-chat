@@ -39,7 +39,7 @@ jobs:
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
-      - name: Test chat behavior
+      - name: Test chat and profile behavior
         run: pnpm test
       - name: Build with synthetic resume
         run: pnpm build:test

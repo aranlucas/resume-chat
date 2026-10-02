@@ -5,17 +5,22 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/conversation";
-import { MessageResponse } from "@/components/message-response";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { STARTERS, type Profile, type Role } from "@/lib/profile";
+import type { Profile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
+import dynamic from "next/dynamic";
 import { Fragment, useEffect, useRef, useState } from "react";
 
-export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[] }) {
+const loadMessageResponse = () =>
+  import("@/components/message-response").then((module) => module.MessageResponse);
+const MessageResponse = dynamic(loadMessageResponse);
+
+export function ProfileChat({ profile }: { profile: Profile }) {
   const { messages, setMessages, sendMessage, status, stop, error, regenerate } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
+    throttle: 50,
   });
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -25,19 +30,15 @@ export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[
 
   const ask = (text: string) => {
     if (!text.trim() || isLoading) return;
+    // Load Markdown while the model prepares its answer.
+    void loadMessageResponse();
     sendMessage({ text: text.trim() });
     setInput("");
   };
 
   return (
     <div className="lg:grid lg:h-dvh lg:grid-cols-[minmax(360px,440px)_1fr]">
-      <ProfilePanel
-        profile={profile}
-        roles={roles}
-        hidden={hasMessages}
-        onAsk={ask}
-        disabled={isLoading}
-      />
+      <ProfilePanel profile={profile} hidden={hasMessages} onAsk={ask} disabled={isLoading} />
 
       <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "h-dvh")}>
         <header className="flex items-center justify-between gap-4 px-5 py-3 sm:px-8">
@@ -145,13 +146,11 @@ export function ProfileChat({ profile, roles }: { profile: Profile; roles: Role[
 
 function ProfilePanel({
   profile,
-  roles,
   hidden,
   onAsk,
   disabled,
 }: {
   profile: Profile;
-  roles: Role[];
   hidden: boolean;
   onAsk: (question: string) => void;
   disabled: boolean;
@@ -184,7 +183,7 @@ function ProfilePanel({
 
       <h2 className="mt-10 text-sm font-semibold">Experience</h2>
       <ol className="mt-3 border-t">
-        {roles.map((r) => (
+        {profile.roles.map((r) => (
           <li key={r.company} className="border-b">
             <button
               type="button"
@@ -213,6 +212,13 @@ function ProfilePanel({
     </aside>
   );
 }
+
+const STARTERS = [
+  "Why would Lucas be a strong hire for an AI agents team?",
+  "How did the Ask DoorDash grocery agent go from prototype to launch?",
+  "What's his experience with MCP and agent infrastructure?",
+  "What languages and platforms does he work in?",
+];
 
 function Starters({ onAsk }: { onAsk: (question: string) => void }) {
   return (

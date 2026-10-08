@@ -3,16 +3,29 @@
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
+
+const subscribe = () => () => {};
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
+  const mounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
+
+  const label =
+    mounted && resolvedTheme
+      ? `Switch to ${resolvedTheme === "light" ? "dark" : "light"} theme`
+      : "Toggle theme";
 
   return (
     <Button
       type="button"
       className="relative"
       variant="ghost"
-      size="sm"
+      size="icon-lg"
       onClick={() => {
         setTheme(resolvedTheme === "light" ? "dark" : "light");
       }}
@@ -25,7 +38,7 @@ export function ThemeToggle() {
         aria-hidden="true"
         className="absolute scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
       />
-      <span className="sr-only">Toggle theme</span>
+      <span className="sr-only">{label}</span>
     </Button>
   );
 }

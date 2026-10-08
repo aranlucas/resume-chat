@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./typeset.css";
 @source "../../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -99,41 +100,6 @@
     outline: 2px solid var(--cobalt);
     outline-offset: 2px;
   }
-}
-
-/* Answer typography: the model replies in light markdown. */
-.answer > * + * {
-  margin-top: 0.75em;
-}
-.answer ul,
-.answer ol {
-  padding-left: 1.25em;
-}
-.answer ul {
-  list-style: disc;
-}
-.answer ol {
-  list-style: decimal;
-}
-.answer li + li {
-  margin-top: 0.35em;
-}
-.answer li::marker {
-  color: var(--slate);
-}
-.answer strong {
-  font-weight: 600;
-}
-.answer a {
-  color: var(--cobalt);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.answer code {
-  font-size: 0.9em;
-  background: var(--cobalt-wash);
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
 }
 
 /* Streaming caret, shown at the end of an answer while it arrives. */

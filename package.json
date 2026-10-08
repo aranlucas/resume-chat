@@ -43,7 +43,7 @@
   "devDependencies": {
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
-    "postcss": "^8.5.28",
+    "postcss": "^8.5.29",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },

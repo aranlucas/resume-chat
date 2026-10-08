@@ -1,8 +1,8 @@
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TypesetResponse } from "@/components/typeset-response";
 import { getResumeMarkdown } from "@/lib/resume";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Streamdown } from "streamdown";
 
 export const metadata: Metadata = { title: "Resume · Lucas Arango" };
 
@@ -17,14 +17,9 @@ export default async function Resume() {
         </Link>
         <ThemeToggle />
       </div>
-      <Streamdown
-        mode="static"
-        controls={false}
-        linkSafety={{ enabled: false }}
-        className="answer resume text-ink text-[17px] leading-relaxed"
-      >
+      <TypesetResponse mode="static" controls={false}>
         {markdown}
-      </Streamdown>
+      </TypesetResponse>
     </main>
   );
 }

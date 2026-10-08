@@ -8,36 +8,62 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Profile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { Chat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
 import dynamic from "next/dynamic";
 import { Fragment, useEffect, useRef, useState } from "react";
+
+import type { ChatSnapshot } from "./chat-engine";
 
 const loadMessageResponse = () =>
   import("@/components/message-response").then((module) => module.MessageResponse);
 const MessageResponse = dynamic(loadMessageResponse);
 
+const loadChatEngine = () => import("./chat-engine");
+
+const IDLE: ChatSnapshot = { messages: [], status: "ready", error: undefined };
+
 export function ProfileChat({ profile }: { profile: Profile }) {
-  const { messages, setMessages, sendMessage, status, stop, error, regenerate } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
-    throttle: 50,
-  });
+  const [chat, setChat] = useState<{
+    instance: Chat<UIMessage>;
+    engine: Awaited<ReturnType<typeof loadChatEngine>>;
+  }>();
+  const [{ messages, status, error }, setSnapshot] = useState(IDLE);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const starting = useRef(false);
+
+  // Fetch the chat client once the page is idle, so the first question doesn't wait on it.
+  useEffect(() => {
+    const id = requestIdleCallback(() => void loadChatEngine());
+    return () => cancelIdleCallback(id);
+  }, []);
 
   const isLoading = status === "submitted" || status === "streaming";
   const hasMessages = messages.length > 0;
 
-  const ask = (text: string) => {
-    if (!text.trim() || isLoading) return;
+  const ask = async (text: string) => {
+    if (!text.trim() || isLoading || starting.current) return;
     // Load Markdown while the model prepares its answer.
     void loadMessageResponse();
-    sendMessage({ text: text.trim() });
     setInput("");
+    let instance = chat?.instance;
+    if (!instance) {
+      starting.current = true;
+      try {
+        const engine = await loadChatEngine();
+        instance = engine.createChat();
+        setChat({ instance, engine });
+      } finally {
+        starting.current = false;
+      }
+    }
+    void instance.sendMessage({ text: text.trim() });
   };
 
   return (
     <div className="lg:grid lg:h-dvh lg:grid-cols-[minmax(360px,440px)_1fr]">
+      {chat && <chat.engine.ChatEngine chat={chat.instance} onChange={setSnapshot} />}
       <ProfilePanel profile={profile} hidden={hasMessages} onAsk={ask} disabled={isLoading} />
 
       <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "h-dvh")}>
@@ -50,8 +76,10 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               <button
                 type="button"
                 onClick={() => {
-                  stop();
-                  setMessages([]);
+                  if (chat) {
+                    void chat.instance.stop();
+                    setChat({ ...chat, instance: chat.engine.createChat() });
+                  }
                   inputRef.current?.focus();
                 }}
                 className="text-slate hover:text-ink rounded-md px-3 py-2 text-sm"
@@ -70,7 +98,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
                 messages={messages}
                 status={status}
                 error={error}
-                onRetry={() => regenerate()}
+                onRetry={() => chat?.instance.regenerate()}
               />
             </ConversationContent>
             <ConversationScrollButton />
@@ -114,7 +142,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
             {isLoading ? (
               <button
                 type="button"
-                onClick={() => stop()}
+                onClick={() => chat?.instance.stop()}
                 className="text-ink hover:bg-cobalt-wash h-10 shrink-0 rounded-md border px-4 text-sm font-semibold"
               >
                 Stop

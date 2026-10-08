@@ -60,5 +60,5 @@
       }
     }
   ],
-  "ignorePatterns": [".next/**", "node_modules/**", "out/**"]
+  "ignorePatterns": [".next/**", "node_modules/**", "out/**", ".agents/**", ".claude/**"]
 }

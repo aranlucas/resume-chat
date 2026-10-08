@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
-import createBundleAnalyzer from "@next/bundle-analyzer";
 
-const withBundleAnalyzer = createBundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-});
+const nextConfig: NextConfig = {
+  // Memoizes components automatically, so the profile panel and earlier
+  // answers don't re-render on every streamed token.
+  reactCompiler: true,
+  experimental: {
+    turbopackRustReactCompiler: true,
+  },
+};
 
-const nextConfig: NextConfig = {};
-
-export default withBundleAnalyzer(nextConfig);
+export default nextConfig;

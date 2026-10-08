@@ -53,12 +53,16 @@ export async function getResume(): Promise<JsonResume> {
   return JsonResume.parse(await (await fetchResumeFile("resume.json")).json());
 }
 
+export async function getResumeMarkdown(signal?: AbortSignal): Promise<string> {
+  return (await fetchResumeFile("resume.md", signal)).text();
+}
+
 /**
  * The resume is small enough (~1.5k tokens) to fit directly in the system
  * prompt, so no vector database or paid embeddings are needed.
  */
 export async function getSystemPrompt(signal?: AbortSignal): Promise<string> {
-  const resume = await (await fetchResumeFile("resume.md", signal)).text();
+  const resume = await getResumeMarkdown(signal);
   return `You are "Ask Lucas", a friendly assistant that answers questions about Lucas Arango's resume and background.
 
 Guidelines:

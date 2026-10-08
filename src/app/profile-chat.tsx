@@ -67,7 +67,12 @@ export function ProfileChat({ profile }: { profile: Profile }) {
       <ProfilePanel profile={profile} hidden={hasMessages} onAsk={ask} disabled={isLoading} />
 
       <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "h-dvh")}>
-        <header className="flex items-center justify-between gap-4 px-5 py-3 sm:px-8">
+        <header
+          className={cn(
+            "flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 sm:px-8 lg:flex",
+            hasMessages ? "flex" : "hidden",
+          )}
+        >
           <p className={cn("font-semibold", hasMessages ? "lg:invisible" : "invisible")}>
             {profile.name}
           </p>
@@ -89,6 +94,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
             )}
             <ThemeToggle />
           </div>
+          {hasMessages && <ProfileLinks profile={profile} className="w-full gap-x-4 lg:hidden" />}
         </header>
 
         {hasMessages ? (
@@ -128,7 +134,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               name="question"
               rows={1}
               placeholder="Ask about experience, projects, or skills"
-              className="placeholder:text-slate/80 field-sizing-content max-h-40 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-base outline-none focus-visible:outline-none"
+              className="placeholder:text-slate field-sizing-content max-h-40 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-base outline-none focus-visible:outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -157,17 +163,36 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               </button>
             )}
           </form>
-          <p className="text-slate mx-auto mt-2 max-w-[44rem] px-1 text-xs">
+          <p className="text-slate mx-auto mt-2 max-w-[44rem] px-1 text-[13px]">
             Answers come from my resume via a free AI model and can be wrong.{" "}
             <a
+              href="/resume"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-ink font-semibold underline underline-offset-2"
+            >
+              Check the resume
+            </a>{" "}
+            ·{" "}
+            <a
               href="https://github.com/aranlucas/resume-chat"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hover:text-ink underline underline-offset-2"
             >
-              See how it&apos;s built
+              How it&apos;s built
             </a>
           </p>
         </div>
       </section>
+      {!hasMessages && (
+        <Experience
+          profile={profile}
+          onAsk={ask}
+          disabled={isLoading}
+          className="px-5 pb-10 sm:px-8 lg:hidden"
+        />
+      )}
     </div>
   );
 }
@@ -186,65 +211,105 @@ function ProfilePanel({
   return (
     <aside
       className={cn(
-        "flex-col px-5 pt-10 pb-10 sm:px-8 lg:flex lg:overflow-y-auto lg:border-r lg:px-10 lg:pt-14",
-        hidden ? "hidden" : "flex",
+        "lg:flex lg:flex-col lg:overflow-y-auto lg:border-r lg:px-10 lg:pt-14 lg:pb-10",
+        hidden && "hidden",
       )}
     >
-      <h1 className="text-[clamp(2.75rem,6vw,4rem)] leading-[0.95] font-bold tracking-[-0.035em]">
-        Lucas
-        <br />
-        Arango
-      </h1>
+      <ProfileHero profile={profile} />
+      <Experience profile={profile} onAsk={onAsk} disabled={disabled} className="hidden lg:block" />
+    </aside>
+  );
+}
+
+function ProfileHero({ profile }: { profile: Profile }) {
+  return (
+    <div className="px-5 pt-10 sm:px-8 lg:p-0">
+      <div className="relative">
+        <div className="absolute top-0 right-0 lg:hidden">
+          <ThemeToggle />
+        </div>
+        <h1 className="text-[clamp(2.75rem,6vw,4rem)] leading-[0.95] font-bold tracking-[-0.035em]">
+          Lucas
+          <br />
+          Arango
+        </h1>
+      </div>
       <p className="text-slate mt-6 max-w-[34ch] text-[17px] leading-relaxed">
         Senior software engineer in {profile.location}. Ten years at DoorDash, AWS, and Amazon. I
         led engineering on Ask DoorDash&apos;s grocery agent, which turns recipes and photos into
         carts.
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        {profile.links.map((l) => (
-          <a key={l.label} href={l.href} className="text-slate hover:text-cobalt">
-            {l.label}
-          </a>
-        ))}
-      </div>
+      <ProfileLinks profile={profile} className="mt-5" />
+    </div>
+  );
+}
 
+function ProfileLinks({ profile, className }: { profile: Profile; className?: string }) {
+  return (
+    <div className={cn("flex flex-wrap gap-x-5 gap-y-2 text-sm", className)}>
+      {[...profile.links, { label: "Resume", href: "/resume" }].map((l) => (
+        <a
+          key={l.label}
+          href={l.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-slate hover:text-cobalt"
+        >
+          {l.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function Experience({
+  profile,
+  onAsk,
+  disabled,
+  className,
+}: {
+  profile: Profile;
+  onAsk: (question: string) => void;
+  disabled: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
       <h2 className="mt-10 text-sm font-semibold">Experience</h2>
       <ol className="mt-3 border-t">
         {profile.roles.map((r) => (
-          <li key={r.company} className="border-b">
+          <li
+            key={r.company}
+            className="group relative grid grid-cols-[5.5rem_1fr_auto] gap-x-3 border-b py-3.5"
+          >
+            <span className="text-slate row-span-3 pt-px text-sm tabular-nums">{r.years}</span>
+            <p className="group-hover:text-cobalt group-has-[:focus-visible]:text-cobalt font-semibold">
+              {r.company}
+            </p>
             <button
               type="button"
               disabled={disabled}
               onClick={() => onAsk(r.question)}
               title={r.question}
-              className="group grid w-full grid-cols-[5.5rem_1fr] gap-3 py-3.5 text-left disabled:cursor-wait"
+              className="text-slate group-hover:text-cobalt group-has-[:focus-visible]:text-cobalt focus-visible:after:outline-cobalt self-start pt-px text-sm font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 disabled:cursor-wait"
             >
-              <span className="text-slate pt-px text-sm tabular-nums">{r.years}</span>
-              <span>
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="group-hover:text-cobalt group-focus-visible:text-cobalt font-semibold">
-                    {r.company}
-                  </span>
-                  <span className="text-cobalt text-sm font-medium opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-                    Ask
-                  </span>
-                </span>
-                <span className="text-slate block text-sm">{r.role}</span>
-                {r.note && <span className="mt-1 block text-sm leading-snug">{r.note}</span>}
-              </span>
+              Ask<span className="sr-only"> about {r.company}</span>{" "}
+              <span aria-hidden="true">→</span>
             </button>
+            <p className="text-slate col-span-2 col-start-2 text-sm">{r.role}</p>
+            {r.note && <p className="col-span-2 col-start-2 mt-1 text-sm leading-snug">{r.note}</p>}
           </li>
         ))}
       </ol>
-    </aside>
+    </div>
   );
 }
 
 const STARTERS = [
   "Why would Lucas be a strong hire for an AI agents team?",
   "How did the Ask DoorDash grocery agent go from prototype to launch?",
-  "What's his experience with MCP and agent infrastructure?",
+  "What kind of engineering work is he strongest at?",
   "What languages and platforms does he work in?",
 ];
 
@@ -252,8 +317,8 @@ function Starters({ onAsk }: { onAsk: (question: string) => void }) {
   return (
     <div className="flex flex-1 flex-col justify-end pt-6 pb-6 lg:pt-16">
       <p className="text-slate max-w-[46ch] text-[17px] leading-relaxed">
-        This page is a small agent that has read my resume. Ask it what you&apos;d ask me in a first
-        call.
+        Ask what you&apos;d ask me on a first call. Answers come from my resume, so you can skip the
+        skim.
       </p>
       <ul className="mt-6 border-t">
         {STARTERS.map((q) => (
@@ -302,6 +367,10 @@ function Transcript({
           <button type="button" onClick={onRetry} className="font-semibold underline">
             Try again
           </button>
+          {" or "}
+          <a href="/resume" target="_blank" rel="noopener noreferrer" className="underline">
+            read the resume
+          </a>
         </div>
       )}
     </div>

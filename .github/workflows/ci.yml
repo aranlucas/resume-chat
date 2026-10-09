@@ -28,7 +28,6 @@ jobs:
         with:
           cache: true
           require-lockfile: true
-
       - parallel:
           - name: Lint
             run: pnpm format:check && pnpm lint
@@ -37,7 +36,7 @@ jobs:
             run: pnpm typecheck
 
           - name: Test chat and profile behavior
-            run: pnpm test
+            run: pnpm run test:all
 
           - name: Build with synthetic resume
             run: pnpm build:test

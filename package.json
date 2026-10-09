@@ -11,7 +11,9 @@
     "format": "oxfmt --write src/ scripts/",
     "format:check": "oxfmt --check src/ scripts/",
     "start": "next start",
-    "test": "node --test --test-concurrency=1 src/lib/*.test.mjs && tsx --test src/lib/*.test.ts src/app/api/chat/*.test.ts",
+    "test": "vitest",
+    "test:node": "node --test --test-concurrency=1 src/lib/*.test.mjs && tsx --test src/lib/*.test.ts src/app/api/chat/*.test.ts",
+    "test:all": "vitest run && npm run test:node",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -38,12 +40,18 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^30.1.2",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "portless": "0.15.7",
     "postcss": "^8.5.29",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^5.0.3"
   },
   "packageManager": "pnpm@12.10.1"
 }

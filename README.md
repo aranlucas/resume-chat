@@ -36,12 +36,13 @@ cp .env.template .env.local
 
 ```bash
 pnpm install
+npm install -g portless@0.15.7
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [https://resume-chat.localhost](https://resume-chat.localhost).
 
-### Named local URL with Portless (optional)
+### Named local URL with Portless
 
 After the normal project setup, use [Portless](https://github.com/vercel-labs/portless/tree/v0.15.7)
 to run this app alongside other repositories without choosing a port. Use Node.js
@@ -49,7 +50,7 @@ to run this app alongside other repositories without choosing a port. Use Node.j
 
 ```sh
 npm install -g portless@0.15.7
-pnpm dev:portless
+pnpm dev
 ```
 
 With default proxy settings, the primary checkout is available at
@@ -63,7 +64,7 @@ to trust a local certificate authority and request administrator access for port
 443 and local hostname entries. Use `portless list` to see routes and
 `portless doctor` for connection or certificate problems.
 
-Use `pnpm dev` for the original localhost workflow.
+Use `pnpm dev:direct` for the localhost workflow.
 
 ## Configuration
 

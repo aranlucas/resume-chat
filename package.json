@@ -3,17 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:portless": "portless",
     "analyze": "next analyze",
     "build": "next build",
     "build:test": "node scripts/build-fixture.mjs",
-    "dev": "next dev",
+    "dev": "portless",
     "lint": "oxlint",
     "format": "oxfmt --write src/ scripts/",
     "format:check": "oxfmt --check src/ scripts/",
     "start": "next start",
     "test": "node --test --test-concurrency=1 src/lib/*.test.mjs && tsx --test src/lib/*.test.ts src/app/api/chat/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:direct": "next dev"
   },
   "dependencies": {
     "@ai-sdk/react": "4.0.137",
@@ -48,6 +48,6 @@
   "packageManager": "pnpm@12.10.1",
   "portless": {
     "name": "resume-chat",
-    "script": "dev"
+    "script": "dev:direct"
   }
 }

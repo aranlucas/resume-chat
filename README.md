@@ -41,6 +41,30 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Named local URL with Portless (optional)
+
+After the normal project setup, use [Portless](https://github.com/vercel-labs/portless/tree/v0.15.7)
+to run this app alongside other repositories without choosing a port. Use Node.js
+24 or newer, within this project's supported Node version, and install the CLI once:
+
+```sh
+npm install -g portless@0.15.7
+pnpm dev:portless
+```
+
+With default proxy settings, the primary checkout is available at
+[https://resume-chat.localhost](https://resume-chat.localhost). Portless runs the
+existing `dev` script with an available `PORT`. Linked Git worktrees get a branch
+prefix; use the exact URL printed at startup. The proxy reuses its most recent
+settings, so a custom port or domain can change that URL.
+
+Run the first launch in an interactive terminal: the default HTTPS setup may ask
+to trust a local certificate authority and request administrator access for port
+443 and local hostname entries. Use `portless list` to see routes and
+`portless doctor` for connection or certificate problems.
+
+Use `pnpm dev` for the original localhost workflow.
+
 ## Configuration
 
 | Variable           | Required | Default                     | Description                                  |

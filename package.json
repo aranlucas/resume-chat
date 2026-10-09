@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev:portless": "portless",
     "analyze": "next analyze",
     "build": "next build",
     "build:test": "node scripts/build-fixture.mjs",
@@ -44,5 +45,9 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
-  "packageManager": "pnpm@12.10.1"
+  "packageManager": "pnpm@12.10.1",
+  "portless": {
+    "name": "resume-chat",
+    "script": "dev"
+  }
 }

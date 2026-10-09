@@ -36,41 +36,18 @@ cp .env.template .env.local
 
 ```bash
 pnpm install
-npm install -g portless@0.15.7
 pnpm dev
 ```
 
-Open [https://resume-chat.localhost](https://resume-chat.localhost).
-
-### Named local URL with Portless
-
-After the normal project setup, use [Portless](https://github.com/vercel-labs/portless/tree/v0.15.7)
-to run this app alongside other repositories without choosing a port. Use Node.js
-24 or newer, within this project's supported Node version, and install the CLI once:
-
-```sh
-npm install -g portless@0.15.7
-pnpm dev
-```
-
-With default proxy settings, the primary checkout is available at
-[https://resume-chat.localhost](https://resume-chat.localhost). Portless starts
-Next.js on an available `PORT`. Linked Git worktrees get a branch
-prefix; use the exact URL printed at startup. The proxy reuses its most recent
-settings, so a custom port or domain can change that URL.
-
-Run the first launch in an interactive terminal: the default HTTPS setup may ask
-to trust a local certificate authority and request administrator access for port
-443 and local hostname entries. Use `portless list` to see routes and
-`portless doctor` for connection or certificate problems.
+Open [https://resume-chat.localhost](https://resume-chat.localhost). `pnpm dev` runs through [Portless](https://github.com/vercel-labs/portless) (a dev dependency); its first run may ask for `sudo` to bind port 443 and trust a local certificate.
 
 ## Configuration
 
-| Variable             | Required | Default                                    | Description                                                                                                                              |
-| -------------------- | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENROUTER_API_KEY` | Yes      | —                                          | OpenRouter API key                                                                                                                       |
-| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server                                                                                         |
-| `OPENROUTER_MODEL`   | No       | `openrouter/free`                          | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
+| Variable           | Required | Default                     | Description                                  |
+| ------------------ | -------- | --------------------------- | -------------------------------------------- |
+| `OPENROUTER_API_KEY` | Yes      | —                           | OpenRouter API key                           |
+| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
+| `OPENROUTER_MODEL`   | No       | `openrouter/free`           | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
 
 ## Vercel deployment
 

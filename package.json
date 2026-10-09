@@ -1,12 +1,12 @@
 {
-  "name": "chat",
+  "name": "resume-chat",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "analyze": "next analyze",
     "build": "next build",
     "build:test": "node scripts/build-fixture.mjs",
-    "dev": "portless run --name resume-chat next dev",
+    "dev": "portless run next dev",
     "lint": "oxlint",
     "format": "oxfmt --write src/ scripts/",
     "format:check": "oxfmt --check src/ scripts/",
@@ -40,6 +40,7 @@
   "devDependencies": {
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
+    "portless": "0.15.7",
     "postcss": "^8.5.29",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"

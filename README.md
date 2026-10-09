@@ -54,8 +54,8 @@ pnpm dev
 ```
 
 With default proxy settings, the primary checkout is available at
-[https://resume-chat.localhost](https://resume-chat.localhost). Portless runs the
-existing `dev` script with an available `PORT`. Linked Git worktrees get a branch
+[https://resume-chat.localhost](https://resume-chat.localhost). Portless starts
+Next.js on an available `PORT`. Linked Git worktrees get a branch
 prefix; use the exact URL printed at startup. The proxy reuses its most recent
 settings, so a custom port or domain can change that URL.
 
@@ -64,15 +64,13 @@ to trust a local certificate authority and request administrator access for port
 443 and local hostname entries. Use `portless list` to see routes and
 `portless doctor` for connection or certificate problems.
 
-Use `pnpm dev:direct` for the localhost workflow.
-
 ## Configuration
 
-| Variable           | Required | Default                     | Description                                  |
-| ------------------ | -------- | --------------------------- | -------------------------------------------- |
-| `OPENROUTER_API_KEY` | Yes      | —                           | OpenRouter API key                           |
-| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
-| `OPENROUTER_MODEL`   | No       | `openrouter/free`           | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
+| Variable             | Required | Default                                    | Description                                                                                                                              |
+| -------------------- | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENROUTER_API_KEY` | Yes      | —                                          | OpenRouter API key                                                                                                                       |
+| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server                                                                                         |
+| `OPENROUTER_MODEL`   | No       | `openrouter/free`                          | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
 
 ## Vercel deployment
 

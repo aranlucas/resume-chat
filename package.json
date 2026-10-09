@@ -6,14 +6,13 @@
     "analyze": "next analyze",
     "build": "next build",
     "build:test": "node scripts/build-fixture.mjs",
-    "dev": "portless",
+    "dev": "portless run --name resume-chat next dev",
     "lint": "oxlint",
     "format": "oxfmt --write src/ scripts/",
     "format:check": "oxfmt --check src/ scripts/",
     "start": "next start",
     "test": "node --test --test-concurrency=1 src/lib/*.test.mjs && tsx --test src/lib/*.test.ts src/app/api/chat/*.test.ts",
-    "typecheck": "tsc --noEmit",
-    "dev:direct": "next dev"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/react": "4.0.137",
@@ -45,9 +44,5 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
-  "packageManager": "pnpm@12.10.1",
-  "portless": {
-    "name": "resume-chat",
-    "script": "dev:direct"
-  }
+  "packageManager": "pnpm@12.10.1"
 }

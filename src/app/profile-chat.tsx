@@ -8,62 +8,40 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Profile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
-import type { Chat } from "@ai-sdk/react";
-import type { UIMessage } from "ai";
+import { Chat, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import dynamic from "next/dynamic";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
-import type { ChatSnapshot } from "./chat-engine";
-
+// Streamdown is heavy, so it loads with the first question rather than the page.
 const loadMessageResponse = () =>
   import("@/components/message-response").then((module) => module.MessageResponse);
 const MessageResponse = dynamic(loadMessageResponse);
 
-const loadChatEngine = () => import("./chat-engine");
-
-const IDLE: ChatSnapshot = { messages: [], status: "ready", error: undefined };
+const createChat = () => new Chat({ transport: new DefaultChatTransport({ api: "/api/chat" }) });
 
 export function ProfileChat({ profile }: { profile: Profile }) {
-  const [chat, setChat] = useState<{
-    instance: Chat<UIMessage>;
-    engine: Awaited<ReturnType<typeof loadChatEngine>>;
-  }>();
-  const [{ messages, status, error }, setSnapshot] = useState(IDLE);
+  // A new Chat per conversation, so a stopped answer can't stream into the next one.
+  const [chat, setChat] = useState(createChat);
+  const { messages, status, error, sendMessage, stop, regenerate } = useChat({
+    chat,
+    throttle: 50,
+  });
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const starting = useRef(false);
-
-  // Fetch the chat client once the page is idle, so the first question doesn't wait on it.
-  useEffect(() => {
-    const id = requestIdleCallback(() => void loadChatEngine());
-    return () => cancelIdleCallback(id);
-  }, []);
 
   const isLoading = status === "submitted" || status === "streaming";
   const hasMessages = messages.length > 0;
 
-  const ask = async (text: string) => {
-    if (!text.trim() || isLoading || starting.current) return;
-    // Load Markdown while the model prepares its answer.
+  const ask = (text: string) => {
+    if (!text.trim() || isLoading) return;
     void loadMessageResponse();
     setInput("");
-    let instance = chat?.instance;
-    if (!instance) {
-      starting.current = true;
-      try {
-        const engine = await loadChatEngine();
-        instance = engine.createChat();
-        setChat({ instance, engine });
-      } finally {
-        starting.current = false;
-      }
-    }
-    void instance.sendMessage({ text: text.trim() });
+    void sendMessage({ text: text.trim() });
   };
 
   return (
     <div className="lg:grid lg:h-dvh lg:grid-cols-[minmax(360px,440px)_1fr]">
-      {chat && <chat.engine.ChatEngine chat={chat.instance} onChange={setSnapshot} />}
       <ProfilePanel profile={profile} hidden={hasMessages} onAsk={ask} disabled={isLoading} />
 
       <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "h-dvh")}>
@@ -81,10 +59,8 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               <button
                 type="button"
                 onClick={() => {
-                  if (chat) {
-                    void chat.instance.stop();
-                    setChat({ ...chat, instance: chat.engine.createChat() });
-                  }
+                  void stop();
+                  setChat(createChat());
                   inputRef.current?.focus();
                 }}
                 className="text-slate hover:text-ink rounded-md px-3 py-2 text-sm"
@@ -104,7 +80,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
                 messages={messages}
                 status={status}
                 error={error}
-                onRetry={() => chat?.instance.regenerate()}
+                onRetry={() => void regenerate()}
               />
             </ConversationContent>
             <ConversationScrollButton />
@@ -148,7 +124,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
             {isLoading ? (
               <button
                 type="button"
-                onClick={() => chat?.instance.stop()}
+                onClick={() => void stop()}
                 className="text-ink hover:bg-cobalt-wash h-10 shrink-0 rounded-md border px-4 text-sm font-semibold"
               >
                 Stop
@@ -348,6 +324,11 @@ function Transcript({
   error: Error | undefined;
   onRetry: () => void;
 }) {
+  const last = messages.at(-1);
+  const isWaiting =
+    (status === "submitted" || status === "streaming") &&
+    !(last?.role === "assistant" && hasText(last));
+
   return (
     <div className="flex flex-col pt-4 pb-8">
       {messages.map((message, index) => (
@@ -355,11 +336,11 @@ function Transcript({
           key={message.id}
           message={message}
           isFirst={index === 0}
-          isLoading={status === "streaming" && index === messages.length - 1}
+          isStreaming={status === "streaming" && message === last}
         />
       ))}
 
-      {status === "submitted" && messages.at(-1)?.role !== "assistant" && <ThinkingMessage />}
+      {isWaiting && <Thinking />}
 
       {error && (
         <div className="text-danger mt-4 text-[17px]" role="alert">
@@ -377,42 +358,21 @@ function Transcript({
   );
 }
 
+const textParts = (message: UIMessage) =>
+  message.parts.filter((part) => part.type === "text").map((part) => part.text);
+
+const hasText = (message: UIMessage) => textParts(message).some((text) => text.trim());
+
 function Message({
   message,
   isFirst,
-  isLoading,
+  isStreaming,
 }: {
   message: UIMessage;
   isFirst: boolean;
-  isLoading: boolean;
+  isStreaming: boolean;
 }) {
-  const hasAnyContent = message.parts.some(
-    (part) => (part.type === "text" || part.type === "reasoning") && part.text.trim().length > 0,
-  );
-  const isThinking = message.role === "assistant" && isLoading && !hasAnyContent;
-
-  const parts = message.parts.map((part, index) => {
-    const key = `message-${message.id}-part-${index}`;
-    switch (part.type) {
-      case "reasoning":
-        // Only the part still streaming shows the indicator.
-        return <MessageReasoning key={key} isLoading={isLoading && part.state === "streaming"} />;
-      case "text":
-        return message.role === "user" ? (
-          <Fragment key={key}>{part.text}</Fragment>
-        ) : (
-          <MessageResponse
-            key={key}
-            className={cn(isLoading && index === message.parts.length - 1 && "caret")}
-          >
-            {part.text}
-          </MessageResponse>
-        );
-      default:
-        // Tool calls, files, etc. aren't shown in the transcript.
-        return null;
-    }
-  });
+  const texts = textParts(message);
 
   if (message.role === "user") {
     return (
@@ -422,57 +382,30 @@ function Message({
           !isFirst && "mt-10 border-t pt-10",
         )}
       >
-        {parts}
+        {texts.join("")}
       </h2>
     );
   }
+  // Until the first words arrive, the transcript shows <Thinking /> instead.
+  if (!hasText(message)) return null;
   return (
     <div className="mt-4 text-[17px] leading-relaxed">
-      {isThinking ? <Thinking labels={READING_LABELS} /> : parts}
+      <MessageResponse className={cn(isStreaming && "caret")}>{texts.join("")}</MessageResponse>
     </div>
   );
 }
-
-/** Shown before the assistant message exists. */
-function ThinkingMessage() {
-  return (
-    <div className="mt-4 text-[17px]">
-      <Thinking labels={READING_LABELS} />
-    </div>
-  );
-}
-
-/** The model's reasoning isn't displayed; only that it's happening. */
-function MessageReasoning({ isLoading }: { isLoading: boolean }) {
-  return isLoading ? <Thinking labels={REASONING_LABELS} /> : null;
-}
-
-const READING_LABELS = ["Reading the resume"];
-// Rotated while the model reasons, so long waits feel alive.
-const REASONING_LABELS = ["Thinking it over", "Connecting the dots", "Picking the best examples"];
 
 /** A tiny resume whose lines get highlighted one by one while the answer is on its way. */
-function Thinking({ labels }: { labels: string[] }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (labels.length < 2) return;
-    const id = setInterval(() => setTick((t) => t + 1), 2400);
-    return () => clearInterval(id);
-  }, [labels]);
-
-  const label = labels[tick % labels.length];
-
+function Thinking() {
   return (
-    <div className="flex items-center gap-3" role="status" aria-live="polite">
+    <div className="mt-4 flex items-center gap-3 text-[17px]" role="status" aria-live="polite">
       <span className="resume-sheet" aria-hidden="true">
         <span />
         <span />
         <span />
         <span />
       </span>
-      <span key={label} className="thinking-label">
-        {label}
-      </span>
+      <span className="thinking-label">Reading the resume</span>
     </div>
   );
 }

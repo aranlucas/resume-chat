@@ -24,7 +24,8 @@ checked against the source resume before they are used for a hiring decision.
 ## Setup
 
 1. Create a dedicated API key at https://openrouter.ai/keys. The default
-   `openrouter/free` router uses available free models; set a $0 credit limit
+   chain of free models (see `src/app/api/chat/route.ts`) answers with
+   reasoning turned off for speed; set a $0 credit limit
    on the key to prevent paid usage. Free models have provider rate limits.
 2. Copy the env template and fill it in:
 
@@ -47,7 +48,6 @@ Open [https://resume-chat.localhost](https://resume-chat.localhost). `pnpm dev` 
 | -------------------- | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `OPENROUTER_API_KEY` | Yes      | —                                          | OpenRouter API key                                                                                                                       |
 | `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server                                                                                         |
-| `OPENROUTER_MODEL`   | No       | `openrouter/free`                          | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
 
 ## Vercel deployment
 
@@ -56,8 +56,7 @@ The existing project is `aranlucas-projects/resume-chat`, served at
 
 1. Link this checkout: `vercel link --project resume-chat --scope aranlucas-projects`.
 2. Set `OPENROUTER_API_KEY` as a server-only secret for Production, Preview,
-   and Development in the project's environment settings. Set
-   `OPENROUTER_MODEL` to `openrouter/free` for those environments.
+   and Development in the project's environment settings.
 3. Deploy with `vercel deploy --prod`. Environment changes require a new
    deployment to take effect.
 4. Ask a question on the live site and confirm a complete answer streams.
@@ -86,20 +85,19 @@ pnpm test
 pnpm build:test
 ```
 
-`pnpm test` exercises profile projection, request validation, cancellation,
-provider failures, and Stop/New conversation flows with mocked models and synthetic resume data.
+`pnpm test` exercises profile projection, request validation, and resume and
+provider failures with a mocked model and synthetic resume data.
 `pnpm build:test` (also used by CI) prerenders against a loopback fixture server
 with the model key cleared. Its build output contains a fictional profile and
 is only for verification; use `pnpm build` for a production build.
 
-The public chat endpoint accepts text questions up to 4,000 characters, at most
-40 messages and 48,000 total text/reasoning characters, and a 128 KiB JSON body.
-Assistant history allows text, reasoning, and step markers, including partial
-responses after Stop. Unsupported roles and attachments are rejected. Invalid
-requests return a safe 400 before loading the resume or calling a model.
-Resume loading has a 10-second deadline; generation has a 45-second deadline
-and a 2,048-token output cap. Failures before streaming return a safe 503;
-failures after streaming starts use the same message in the SDK error stream.
+The public chat endpoint accepts a JSON body of up to 128,000 characters with
+user and assistant messages. Only their text reaches the model; other roles and
+parts are dropped or rejected, and invalid requests return a safe 400 before
+loading the resume or calling a model. Resume loading has a 10-second deadline,
+answers are capped at 2,048 tokens, and the function stops after 60 seconds.
+Failures before streaming return a safe 503; failures after streaming starts
+use the same message in the SDK error stream.
 These per-request limits do not replace deployment-level rate limiting.
 
 ## How the request flows
@@ -126,8 +124,7 @@ error in the chat.
 - `src/app/page.tsx` and `src/app/profile-chat.tsx` compose the landing page.
 - `src/components/conversation.tsx` and `message-response.tsx` render the
   streaming conversation.
-- `src/app/api/chat/route.ts` supplies the production model and resume adapters.
-- `src/lib/chat-answer.ts` owns the bounded request, cancellation, and error contract.
+- `src/app/api/chat/route.ts` validates the conversation, picks the free models, and streams the answer.
 - `src/lib/resume.ts` fetches and validates the public resume documents.
 - `src/lib/profile.ts` provides the profile and experience timeline ready for the page to render.
 - `src/app/api/revalidate/route.ts` accepts the cache refresh webhook.

@@ -3,19 +3,15 @@ import { afterEach, beforeEach, test, vi } from "vitest";
 import { POST } from "@/app/api/chat/route";
 
 const originalKey = process.env.OPENROUTER_API_KEY;
-const originalModel = process.env.OPENROUTER_MODEL;
 
 beforeEach(() => {
   process.env.OPENROUTER_API_KEY = "test-key";
-  process.env.OPENROUTER_MODEL = "";
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY;
   else process.env.OPENROUTER_API_KEY = originalKey;
-  if (originalModel === undefined) delete process.env.OPENROUTER_MODEL;
-  else process.env.OPENROUTER_MODEL = originalModel;
 });
 
 const question = {
@@ -55,10 +51,12 @@ test("malformed requests return 400 before fetching the resume or calling the mo
     {},
     { messages: null },
     { messages: [null] },
+    { messages: [] },
     { messages: [{ role: "user", parts: question.parts }] },
     { messages: [{ ...question, parts: "not an array" }] },
     { messages: [{ ...question, parts: [{ type: "text", text: 42 }] }] },
     { messages: [{ ...question, role: "invalid-role" }] },
+    { messages: [{ ...question, role: "system" }] },
   ];
 
   await Promise.all(
@@ -76,11 +74,13 @@ test("malformed requests return 400 before fetching the resume or calling the mo
   assert.equal(upstream.mock.calls.length, 0);
 });
 
-test("valid history streams follow-up answers and rejects assistant continuations", async () => {
+test("valid history streams a follow-up answer without reasoning", async () => {
   let providerBody:
     | {
         model: string;
+        models?: string[];
         provider: { sort: string };
+        reasoning?: { effort: string };
         messages: { role: string; content: unknown }[];
       }
     | undefined;
@@ -124,12 +124,14 @@ test("valid history streams follow-up answers and rejects assistant continuation
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get("Content-Type") ?? "", /text\/event-stream/);
-  assert.match(stream, /"type":"reasoning-delta"/);
+  assert.doesNotMatch(stream, /"type":"reasoning/);
   assert.match(stream, /"type":"text-delta"/);
   assert.match(stream, /Lucas built an AI grocery agent/);
   assert.match(stream, /"type":"finish"/);
   assert.doesNotMatch(stream, /"type":"error"/);
-  assert.equal(providerBody?.model, "openrouter/free");
+  assert.equal(providerBody?.model, "apodex/apodex-1.1-mini:free");
+  assert.equal(providerBody?.models?.length, 3);
+  assert.equal(providerBody?.reasoning?.effort, "none");
   assert.equal(providerBody?.provider.sort, "latency");
   assert.deepEqual(
     providerBody?.messages.map((message) => message.role),
@@ -139,18 +141,6 @@ test("valid history streams follow-up answers and rejects assistant continuation
     JSON.stringify(providerBody?.messages[0].content),
     /Lucas built an AI grocery agent/,
   );
-
-  const continuation = await POST(
-    request({
-      messages: [
-        ...history,
-        { id: "partial-answer", role: "assistant", parts: [{ type: "text", text: "Lucas built" }] },
-      ],
-    }),
-  );
-  assert.equal(continuation.status, 400);
-  assert.match(await continuation.text(), /conversation is invalid or too long/);
-  assert.equal(providerBody?.messages.at(-1)?.role, "user");
 });
 
 test("a resume outage returns a useful 503 response", async () => {

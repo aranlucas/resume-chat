@@ -11,9 +11,8 @@
     "format": "oxfmt --write src/ scripts/",
     "format:check": "oxfmt --check src/ scripts/",
     "start": "next start",
-    "test": "vitest",
-    "test:node": "node --test --test-concurrency=1 src/lib/*.test.mjs && tsx --test src/lib/*.test.ts src/app/api/chat/*.test.ts",
-    "test:all": "vitest run && npm run test:node",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

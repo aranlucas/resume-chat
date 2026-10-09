@@ -1,12 +1,14 @@
 /* eslint-disable no-await-in-loop -- Cases and stream polling run sequentially with shared mocks. */
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { afterEach, test, vi } from "vitest";
 import { setTimeout as delay } from "node:timers/promises";
 import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { answerChat } from "./chat-answer.ts";
 import { getSystemPrompt } from "./resume.ts";
+
+afterEach(() => vi.restoreAllMocks());
 
 const UNAVAILABLE = "The assistant is temporarily unavailable. Please try again in a moment.";
 const INVALID =
@@ -54,81 +56,81 @@ const chunks = (text) =>
     .filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
     .map((line) => JSON.parse(line.slice(6)));
 
-test("invalid bodies return a stable 400 without loading a resume or model", async (t) => {
-  const bodies = {
-    "malformed JSON": "{",
-    "missing messages": "{}",
-    "non-object JSON": "null",
-    "non-array messages": JSON.stringify({ messages: "hello" }),
-    "empty conversation": JSON.stringify({ messages: [] }),
-    "missing id": JSON.stringify({ messages: [{ role: "user", parts: user().parts }] }),
-    "untrusted system role": JSON.stringify({ messages: [{ ...user(), role: "system" }] }),
-    "unsupported file": JSON.stringify({
-      messages: [{ ...user(), parts: [{ type: "file", url: "https://example.invalid/private" }] }],
-    }),
-    "non-string text": JSON.stringify({
-      messages: [{ ...user(), parts: [{ type: "text", text: 7 }] }],
-    }),
-    "user reasoning": JSON.stringify({
-      messages: [{ ...user(), parts: [{ type: "reasoning", text: "hello" }] }],
-    }),
-    "empty question": JSON.stringify({ messages: [user(" \n ")] }),
-    "oversized question": JSON.stringify({ messages: [user("a".repeat(4001))] }),
-    "split oversized question": JSON.stringify({
-      messages: [
-        {
-          ...user(),
-          parts: [
-            { type: "text", text: "a".repeat(2001) },
-            { type: "text", text: "b".repeat(2000) },
-          ],
-        },
-      ],
-    }),
-    "too many parts": JSON.stringify({
-      messages: [
-        { ...user(), parts: Array.from({ length: 17 }, () => ({ type: "text", text: "a" })) },
-      ],
-    }),
-    "too many messages": JSON.stringify({
-      messages: Array.from({ length: 41 }, (_, i) => user("question", `id-${i}`)),
-    }),
-    "too much total content": JSON.stringify({
-      messages: Array.from({ length: 13 }, (_, i) => user("a".repeat(4000), `id-${i}`)),
-    }),
-    "oversized assistant content": JSON.stringify({
-      messages: [
-        user(),
-        assistant([{ type: "reasoning", text: "a".repeat(16001) }]),
-        user("next", "question-2"),
-      ],
-    }),
-    "assistant-only conversation": JSON.stringify({ messages: [assistant()] }),
-    "last message is assistant": JSON.stringify({ messages: [user(), assistant()] }),
-    "oversized unknown field": JSON.stringify({
-      messages: [user()],
-      padding: "a".repeat(128 * 1024),
-    }),
-    "oversized UTF-8 bytes": JSON.stringify({ messages: [user()], padding: "🙂".repeat(40_000) }),
-  };
-  for (const [name, body] of Object.entries(bodies)) {
-    await t.test(name, async () => {
-      const response = await answerChat(
-        new Request("http://localhost/api/chat", {
-          method: "POST",
-          body,
-          headers: { "Content-Length": "1" },
-        }),
-        {
-          getModel: () => assert.fail("invalid input must not obtain a model"),
-          loadPrompt: () => assert.fail("invalid input must not load the resume"),
-        },
-      );
-      assert.equal(response.status, 400);
-      assert.equal(await response.text(), INVALID);
-    });
-  }
-});
+const invalidBodies = {
+  "malformed JSON": "{",
+  "missing messages": "{}",
+  "non-object JSON": "null",
+  "non-array messages": JSON.stringify({ messages: "hello" }),
+  "empty conversation": JSON.stringify({ messages: [] }),
+  "missing id": JSON.stringify({ messages: [{ role: "user", parts: user().parts }] }),
+  "untrusted system role": JSON.stringify({ messages: [{ ...user(), role: "system" }] }),
+  "unsupported file": JSON.stringify({
+    messages: [{ ...user(), parts: [{ type: "file", url: "https://example.invalid/private" }] }],
+  }),
+  "non-string text": JSON.stringify({
+    messages: [{ ...user(), parts: [{ type: "text", text: 7 }] }],
+  }),
+  "user reasoning": JSON.stringify({
+    messages: [{ ...user(), parts: [{ type: "reasoning", text: "hello" }] }],
+  }),
+  "empty question": JSON.stringify({ messages: [user(" \n ")] }),
+  "oversized question": JSON.stringify({ messages: [user("a".repeat(4001))] }),
+  "split oversized question": JSON.stringify({
+    messages: [
+      {
+        ...user(),
+        parts: [
+          { type: "text", text: "a".repeat(2001) },
+          { type: "text", text: "b".repeat(2000) },
+        ],
+      },
+    ],
+  }),
+  "too many parts": JSON.stringify({
+    messages: [
+      { ...user(), parts: Array.from({ length: 17 }, () => ({ type: "text", text: "a" })) },
+    ],
+  }),
+  "too many messages": JSON.stringify({
+    messages: Array.from({ length: 41 }, (_, i) => user("question", `id-${i}`)),
+  }),
+  "too much total content": JSON.stringify({
+    messages: Array.from({ length: 13 }, (_, i) => user("a".repeat(4000), `id-${i}`)),
+  }),
+  "oversized assistant content": JSON.stringify({
+    messages: [
+      user(),
+      assistant([{ type: "reasoning", text: "a".repeat(16001) }]),
+      user("next", "question-2"),
+    ],
+  }),
+  "assistant-only conversation": JSON.stringify({ messages: [assistant()] }),
+  "last message is assistant": JSON.stringify({ messages: [user(), assistant()] }),
+  "oversized unknown field": JSON.stringify({
+    messages: [user()],
+    padding: "a".repeat(128 * 1024),
+  }),
+  "oversized UTF-8 bytes": JSON.stringify({ messages: [user()], padding: "🙂".repeat(40_000) }),
+};
+
+test.each(Object.entries(invalidBodies))(
+  "invalid body (%s) returns a stable 400 without loading a resume or model",
+  async (_name, body) => {
+    const response = await answerChat(
+      new Request("http://localhost/api/chat", {
+        method: "POST",
+        body,
+        headers: { "Content-Length": "1" },
+      }),
+      {
+        getModel: () => assert.fail("invalid input must not obtain a model"),
+        loadPrompt: () => assert.fail("invalid input must not load the resume"),
+      },
+    );
+    assert.equal(response.status, 400);
+    assert.equal(await response.text(), INVALID);
+  },
+);
 
 test("chunked oversized bodies are cancelled before reading unbounded content", async () => {
   let cancelled = false;
@@ -229,8 +231,8 @@ test("configuration, resume HTTP failure, and prompt timeout share a safe 503", 
   }
 });
 
-test("provider startup and midstream failures expose only the safe stream error", async (t) => {
-  t.mock.method(console, "error", () => {});
+test("provider startup and midstream failures expose only the safe stream error", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
   for (const doStream of [
     () => ({
       stream: ReadableStream.from(
@@ -294,41 +296,37 @@ test("abort before parsing or while reading a body stops before any model/resume
   }
 });
 
-test(
-  "generation deadline returns a safe error instead of a silent successful stop",
-  { timeout: 5000 },
-  async (t) => {
-    const originalTimeout = AbortSignal.timeout.bind(AbortSignal);
-    t.mock.method(AbortSignal, "timeout", (milliseconds) =>
-      originalTimeout(milliseconds === 45_000 ? 10 : milliseconds),
-    );
-    const model = new MockLanguageModelV4({
-      doStream: ({ abortSignal }) => ({
-        stream: new ReadableStream({
-          start(controller) {
-            controller.enqueue({ type: "stream-start", warnings: [] });
-            abortSignal.addEventListener("abort", () => controller.error(abortSignal.reason), {
-              once: true,
-            });
-          },
-        }),
+test("generation deadline returns a safe error instead of a silent successful stop", async () => {
+  const originalTimeout = AbortSignal.timeout.bind(AbortSignal);
+  vi.spyOn(AbortSignal, "timeout").mockImplementation((milliseconds) =>
+    originalTimeout(milliseconds === 45_000 ? 10 : milliseconds),
+  );
+  const model = new MockLanguageModelV4({
+    doStream: ({ abortSignal }) => ({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue({ type: "stream-start", warnings: [] });
+          abortSignal.addEventListener("abort", () => controller.error(abortSignal.reason), {
+            once: true,
+          });
+        },
       }),
-    });
-    const response = await answerChat(request(), {
-      ...fixture().dependencies,
-      getModel: () => model,
-    });
-    const events = chunks(await response.text());
-    assert.ok(events.some((part) => part.type === "error" && part.errorText === UNAVAILABLE));
-    assert.ok(!events.some((part) => part.type === "abort"));
-  },
-);
+    }),
+  });
+  const response = await answerChat(request(), {
+    ...fixture().dependencies,
+    getModel: () => model,
+  });
+  const events = chunks(await response.text());
+  assert.ok(events.some((part) => part.type === "error" && part.errorText === UNAVAILABLE));
+  assert.ok(!events.some((part) => part.type === "abort"));
+}, 5000);
 
-test("the HTTP resume adapter receives cancellation and never starts generation after abort", async (t) => {
+test("the HTTP resume adapter receives cancellation and never starts generation after abort", async () => {
   const abort = new AbortController();
   const { model, dependencies } = fixture();
   const started = Promise.withResolvers();
-  t.mock.method(globalThis, "fetch", async (_url, options) => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, options) => {
     started.resolve(options);
     await new Promise((resolve, reject) => {
       options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
@@ -347,33 +345,29 @@ test("the HTTP resume adapter receives cancellation and never starts generation 
   assert.equal(model.doStreamCalls.length, 0);
 });
 
-test(
-  "a stalled HTTP resume fetch times out with the same unavailable response",
-  { timeout: 15_000 },
-  async (t) => {
-    const { model, dependencies } = fixture();
-    t.mock.method(
-      globalThis,
-      "fetch",
-      (_url, { signal }) =>
-        new Promise((resolve, reject) => {
-          signal.addEventListener("abort", () => reject(signal.reason), { once: true });
-        }),
-    );
-    const response = await answerChat(request(), { ...dependencies, loadPrompt: getSystemPrompt });
-    assert.equal(response.status, 503);
-    assert.equal(await response.text(), UNAVAILABLE);
-    assert.equal(model.doStreamCalls.length, 0);
-  },
-);
+test("a stalled HTTP resume fetch times out with the same unavailable response", async () => {
+  const { model, dependencies } = fixture();
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    (_url, { signal }) =>
+      new Promise((resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+      }),
+  );
+  const response = await answerChat(request(), { ...dependencies, loadPrompt: getSystemPrompt });
+  assert.equal(response.status, 503);
+  assert.equal(await response.text(), UNAVAILABLE);
+  assert.equal(model.doStreamCalls.length, 0);
+}, 15_000);
 
-test("real HTTP adapter normalizes failure and reads synthetic Markdown only", async (t) => {
+test("real HTTP adapter normalizes failure and reads synthetic Markdown only", async () => {
   const { dependencies } = fixture();
-  t.mock.method(globalThis, "fetch", async () => new Response("private error", { status: 500 }));
+  const fetchMock = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async () => new Response("private error", { status: 500 }));
   const failure = await answerChat(request(), { ...dependencies, loadPrompt: getSystemPrompt });
   assert.equal(failure.status, 503);
   assert.equal(await failure.text(), UNAVAILABLE);
-  globalThis.fetch.mock.mockImplementation(
+  fetchMock.mockImplementation(
     async () => new Response("# Fictional candidate\nBuilt demo systems."),
   );
   const prompt = await getSystemPrompt(new AbortController().signal);
@@ -409,38 +403,34 @@ function chatFixture() {
   return { chat, model, getSignal: () => providerSignal };
 }
 
-test(
-  "a visitor abort while streaming emits an abort without exposing its reason",
-  { timeout: 5000 },
-  async () => {
-    const abort = new AbortController();
-    const started = Promise.withResolvers();
-    const model = new MockLanguageModelV4({
-      doStream: ({ abortSignal }) => ({
-        stream: new ReadableStream({
-          start(controller) {
-            controller.enqueue({ type: "stream-start", warnings: [] });
-            abortSignal.addEventListener("abort", () => controller.error(abortSignal.reason), {
-              once: true,
-            });
-            started.resolve();
-          },
-        }),
+test("a visitor abort while streaming emits an abort without exposing its reason", async () => {
+  const abort = new AbortController();
+  const started = Promise.withResolvers();
+  const model = new MockLanguageModelV4({
+    doStream: ({ abortSignal }) => ({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue({ type: "stream-start", warnings: [] });
+          abortSignal.addEventListener("abort", () => controller.error(abortSignal.reason), {
+            once: true,
+          });
+          started.resolve();
+        },
       }),
-    });
-    const response = await answerChat(request([user()], abort.signal), {
-      ...fixture().dependencies,
-      getModel: () => model,
-    });
-    const body = response.text();
-    await started.promise;
-    abort.abort(new Error("private abort reason"));
-    const text = await body;
-    assert.doesNotMatch(text, /private abort reason/);
-    assert.ok(chunks(text).some((part) => part.type === "abort"));
-    assert.ok(!chunks(text).some((part) => part.type === "error"));
-  },
-);
+    }),
+  });
+  const response = await answerChat(request([user()], abort.signal), {
+    ...fixture().dependencies,
+    getModel: () => model,
+  });
+  const body = response.text();
+  await started.promise;
+  abort.abort(new Error("private abort reason"));
+  const text = await body;
+  assert.doesNotMatch(text, /private abort reason/);
+  assert.ok(chunks(text).some((part) => part.type === "abort"));
+  assert.ok(!chunks(text).some((part) => part.type === "error"));
+}, 5000);
 
 async function waitFor(predicate) {
   for (let i = 0; i < 100; i++) {
@@ -450,45 +440,37 @@ async function waitFor(predicate) {
   assert.fail("chat did not reach the expected state");
 }
 
-test(
-  "SDK Stop → follow-up retains partial history and cancels provider work",
-  { timeout: 5000 },
-  async () => {
-    const { chat, model, getSignal } = chatFixture();
-    const first = chat.sendMessage({ text: "First question" });
-    await waitFor(() => chat.messages.at(-1)?.parts.some((part) => part.type === "text"));
-    await chat.stop();
-    await first;
-    assert.equal(getSignal().aborted, true);
-    assert.equal(chat.status, "ready");
-    await chat.sendMessage({ text: "Follow-up question" });
-    assert.equal(chat.error, undefined);
-    assert.equal(chat.status, "ready");
-    assert.equal(model.doStreamCalls.length, 2);
-    assert.deepEqual(
-      chat.messages
-        .filter((message) => message.role === "user")
-        .map((message) => message.parts[0].text),
-      ["First question", "Follow-up question"],
-    );
-  },
-);
+test("SDK Stop → follow-up retains partial history and cancels provider work", async () => {
+  const { chat, model, getSignal } = chatFixture();
+  const first = chat.sendMessage({ text: "First question" });
+  await waitFor(() => chat.messages.at(-1)?.parts.some((part) => part.type === "text"));
+  await chat.stop();
+  await first;
+  assert.equal(getSignal().aborted, true);
+  assert.equal(chat.status, "ready");
+  await chat.sendMessage({ text: "Follow-up question" });
+  assert.equal(chat.error, undefined);
+  assert.equal(chat.status, "ready");
+  assert.equal(model.doStreamCalls.length, 2);
+  assert.deepEqual(
+    chat.messages
+      .filter((message) => message.role === "user")
+      .map((message) => message.parts[0].text),
+    ["First question", "Follow-up question"],
+  );
+}, 5000);
 
-test(
-  "SDK New conversation → immediate send cannot restore the cancelled response",
-  { timeout: 5000 },
-  async () => {
-    const { chat, model } = chatFixture();
-    const first = chat.sendMessage({ text: "Old question" });
-    await waitFor(() => chat.messages.at(-1)?.parts.some((part) => part.type === "text"));
-    void chat.stop();
-    chat.messages = [];
-    await chat.sendMessage({ text: "Fresh question" });
-    await first;
-    assert.equal(chat.error, undefined);
-    assert.equal(chat.status, "ready");
-    assert.equal(chat.messages.length, 2);
-    assert.equal(chat.messages[0].parts[0].text, "Fresh question");
-    assert.doesNotMatch(JSON.stringify(model.doStreamCalls[1].prompt), /Old question/);
-  },
-);
+test("SDK New conversation → immediate send cannot restore the cancelled response", async () => {
+  const { chat, model } = chatFixture();
+  const first = chat.sendMessage({ text: "Old question" });
+  await waitFor(() => chat.messages.at(-1)?.parts.some((part) => part.type === "text"));
+  void chat.stop();
+  chat.messages = [];
+  await chat.sendMessage({ text: "Fresh question" });
+  await first;
+  assert.equal(chat.error, undefined);
+  assert.equal(chat.status, "ready");
+  assert.equal(chat.messages.length, 2);
+  assert.equal(chat.messages[0].parts[0].text, "Fresh question");
+  assert.doesNotMatch(JSON.stringify(model.doStreamCalls[1].prompt), /Old question/);
+}, 5000);

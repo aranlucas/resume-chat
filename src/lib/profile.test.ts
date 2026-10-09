@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { afterEach, test, vi } from "vitest";
 import { getProfile } from "@/lib/profile";
+
+afterEach(() => vi.restoreAllMocks());
 
 const resume = {
   basics: {
@@ -35,8 +37,8 @@ const resume = {
   ],
 };
 
-test("getProfile returns public page data and a complete timeline without internships", async (t) => {
-  t.mock.method(globalThis, "fetch", async () => Response.json(resume));
+test("getProfile returns public page data and a complete timeline without internships", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(resume));
 
   const profile = await getProfile();
 
@@ -57,16 +59,16 @@ test("getProfile returns public page data and a complete timeline without intern
   assert.equal(profile.roles[1].question, "What did Lucas do at Example Company?");
 });
 
-test("getProfile rejects invalid resume dates instead of rendering a broken timeline", async (t) => {
-  t.mock.method(globalThis, "fetch", async () =>
+test("getProfile rejects invalid resume dates instead of rendering a broken timeline", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
     Response.json({ ...resume, work: [{ ...resume.work[0], startDate: "2022-13" }] }),
   );
 
   await assert.rejects(getProfile(), /expected YYYY-MM/);
 });
 
-test("getProfile reports a failed resume request", async (t) => {
-  t.mock.method(globalThis, "fetch", async () => new Response("Unavailable", { status: 503 }));
+test("getProfile reports a failed resume request", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("Unavailable", { status: 503 }));
 
   await assert.rejects(getProfile(), /503/);
 });

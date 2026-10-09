@@ -8,5 +8,5 @@ allowBuilds:
 minimumReleaseAge: 0
 pmOnFail: ignore
 overrides:
-  'undici@>=7.0.0 <7.29.1': '7.29.1'
-  'baseline-browser-mapping@>=2.0.0 <2.11.0': '2.11.0'
+  "undici@>=7.0.0 <7.29.1": "7.29.1"
+  "baseline-browser-mapping@>=2.0.0 <2.11.0": "2.11.0"

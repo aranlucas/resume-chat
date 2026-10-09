@@ -114,9 +114,7 @@ with absolutely-positioned `Badge`s.
 **Incorrect:**
 
 ```tsx
-<div className="w-fit rounded-2xl bg-primary px-3 py-2 text-primary-foreground">
-  {text}
-</div>
+<div className="bg-primary text-primary-foreground w-fit rounded-2xl px-3 py-2">{text}</div>
 ```
 
 **Correct:**
@@ -178,7 +176,7 @@ labeled separators are `Marker`, not a `Separator` plus a centered span.
 ```tsx
 <div className="flex items-center gap-3 py-2">
   <Separator className="flex-1" />
-  <span className="text-xs text-muted-foreground">Today</span>
+  <span className="text-muted-foreground text-xs">Today</span>
   <Separator className="flex-1" />
 </div>
 ```

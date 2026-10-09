@@ -40,3 +40,5 @@ next-env.d.ts
 .vscode
 .env*
 !.env.template
+
+.impeccable/critique/

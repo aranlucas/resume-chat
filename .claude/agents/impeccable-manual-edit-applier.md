@@ -6,6 +6,7 @@ model: inherit
 effort: medium
 maxTurns: 12
 ---
+
 # Impeccable Manual Edit Applier
 
 You apply one leased Impeccable live `manual_edit_apply` event to real source files.
@@ -79,19 +80,44 @@ Return only JSON. No markdown, no prose, no command transcript.
 Every entry applied:
 
 ```json
-{"status":"done","appliedEntryIds":["entry-id"],"failed":[],"files":["src/App.jsx"],"notes":[]}
+{
+  "status": "done",
+  "appliedEntryIds": ["entry-id"],
+  "failed": [],
+  "files": ["src/App.jsx"],
+  "notes": []
+}
 ```
 
 Some entries applied:
 
 ```json
-{"status":"partial","appliedEntryIds":["entry-id"],"failed":[{"entryId":"other-entry","reason":"originalText not found","candidates":[{"file":"src/App.jsx","line":42}]}],"files":["src/App.jsx"],"notes":[]}
+{
+  "status": "partial",
+  "appliedEntryIds": ["entry-id"],
+  "failed": [
+    {
+      "entryId": "other-entry",
+      "reason": "originalText not found",
+      "candidates": [{ "file": "src/App.jsx", "line": 42 }]
+    }
+  ],
+  "files": ["src/App.jsx"],
+  "notes": []
+}
 ```
 
 No entries applied:
 
 ```json
-{"status":"error","appliedEntryIds":[],"failed":[{"entryId":"entry-id","reason":"could not resolve source"}],"files":[],"notes":[],"message":"could not resolve source"}
+{
+  "status": "error",
+  "appliedEntryIds": [],
+  "failed": [{ "entryId": "entry-id", "reason": "could not resolve source" }],
+  "files": [],
+  "notes": [],
+  "message": "could not resolve source"
+}
 ```
 
 `appliedEntryIds` must contain only entries whose every op landed. `files` must list every source file you changed. `failed` and `notes` must always be arrays. `failed` must list entries you did not fully apply.

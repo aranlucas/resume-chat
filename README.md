@@ -43,11 +43,11 @@ Open [https://resume-chat.localhost](https://resume-chat.localhost). `pnpm dev` 
 
 ## Configuration
 
-| Variable           | Required | Default                     | Description                                  |
-| ------------------ | -------- | --------------------------- | -------------------------------------------- |
-| `OPENROUTER_API_KEY` | Yes      | —                           | OpenRouter API key                           |
-| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
-| `OPENROUTER_MODEL`   | No       | `openrouter/free`           | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
+| Variable             | Required | Default                                    | Description                                                                                                                              |
+| -------------------- | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENROUTER_API_KEY` | Yes      | —                                          | OpenRouter API key                                                                                                                       |
+| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server                                                                                         |
+| `OPENROUTER_MODEL`   | No       | `openrouter/free`                          | Routes to available free models. Can be overridden with a current OpenRouter model id. See https://openrouter.ai/collections/free-models |
 
 ## Vercel deployment
 

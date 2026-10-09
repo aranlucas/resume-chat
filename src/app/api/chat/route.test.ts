@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, beforeEach, test } from "node:test";
+import { afterEach, beforeEach, test, vi } from "vitest";
 import { POST } from "@/app/api/chat/route";
 
 const originalKey = process.env.OPENROUTER_API_KEY;
@@ -11,6 +11,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY;
   else process.env.OPENROUTER_API_KEY = originalKey;
   if (originalModel === undefined) delete process.env.OPENROUTER_MODEL;
@@ -31,9 +32,9 @@ function request(body: unknown) {
   });
 }
 
-test("a missing server key returns 503 without making an upstream request", async (t) => {
+test("a missing server key returns 503 without making an upstream request", async () => {
   process.env.OPENROUTER_API_KEY = " ";
-  const upstream = t.mock.method(globalThis, "fetch", async () => {
+  const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     throw new Error("Unexpected upstream request");
   });
 
@@ -41,11 +42,11 @@ test("a missing server key returns 503 without making an upstream request", asyn
 
   assert.equal(response.status, 503);
   assert.match(await response.text(), /temporarily unavailable/);
-  assert.equal(upstream.mock.callCount(), 0);
+  assert.equal(upstream.mock.calls.length, 0);
 });
 
-test("malformed requests return 400 before fetching the resume or calling the model", async (t) => {
-  const upstream = t.mock.method(globalThis, "fetch", async () => {
+test("malformed requests return 400 before fetching the resume or calling the model", async () => {
+  const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
     throw new Error("Unexpected upstream request");
   });
   const invalidBodies = [
@@ -72,10 +73,10 @@ test("malformed requests return 400 before fetching the resume or calling the mo
     new Request("http://localhost/api/chat", { method: "POST", body: "{" }),
   );
   assert.equal(malformed.status, 400);
-  assert.equal(upstream.mock.callCount(), 0);
+  assert.equal(upstream.mock.calls.length, 0);
 });
 
-test("valid history streams follow-up answers and rejects assistant continuations", async (t) => {
+test("valid history streams follow-up answers and rejects assistant continuations", async () => {
   let providerBody:
     | {
         model: string;
@@ -83,25 +84,27 @@ test("valid history streams follow-up answers and rejects assistant continuation
         messages: { role: string; content: unknown }[];
       }
     | undefined;
-  t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    if (url.endsWith("/resume.md")) return new Response("Lucas built an AI grocery agent.");
-    assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
-    providerBody = JSON.parse(String(init?.body));
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/resume.md")) return new Response("Lucas built an AI grocery agent.");
+      assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
+      providerBody = JSON.parse(String(init?.body));
 
-    const chunks = [
-      { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
-      { choices: [{ delta: { content: "Lucas built an AI grocery agent." } }] },
-      {
-        choices: [{ delta: {}, finish_reason: "stop" }],
-        usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
-      },
-    ];
-    const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
-    return new Response(`${stream}data: [DONE]\n\n`, {
-      headers: { "Content-Type": "text/event-stream" },
-    });
-  });
+      const chunks = [
+        { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
+        { choices: [{ delta: { content: "Lucas built an AI grocery agent." } }] },
+        {
+          choices: [{ delta: {}, finish_reason: "stop" }],
+          usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
+        },
+      ];
+      const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
+      return new Response(`${stream}data: [DONE]\n\n`, {
+        headers: { "Content-Type": "text/event-stream" },
+      });
+    },
+  );
   const history = [
     { ...question, id: "first-question" },
     {
@@ -150,24 +153,22 @@ test("valid history streams follow-up answers and rejects assistant continuation
   assert.equal(providerBody?.messages.at(-1)?.role, "user");
 });
 
-test("a resume outage returns a useful 503 response", async (t) => {
-  t.mock.method(console, "error", () => {});
-  const upstream = t.mock.method(
-    globalThis,
-    "fetch",
-    async () => new Response("Source outage details", { status: 503 }),
-  );
+test("a resume outage returns a useful 503 response", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response("Source outage details", { status: 503 }));
 
   const response = await POST(request({ messages: [question] }));
 
   assert.equal(response.status, 503);
   assert.match(await response.text(), /temporarily unavailable/);
-  assert.equal(upstream.mock.callCount(), 1);
+  assert.equal(upstream.mock.calls.length, 1);
 });
 
-test("a model failure becomes a safe error in the response stream", async (t) => {
-  t.mock.method(console, "error", () => {});
-  t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
+test("a model failure becomes a safe error in the response stream", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input: RequestInfo | URL) => {
     if (String(input).endsWith("/resume.md")) return new Response("Lucas's public resume.");
     return Response.json(
       { error: { message: "Private provider error", code: 400 } },

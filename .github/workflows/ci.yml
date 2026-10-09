@@ -28,7 +28,6 @@ jobs:
         with:
           cache: true
           require-lockfile: true
-
       - parallel:
           - name: Lint
             run: pnpm format:check && pnpm lint

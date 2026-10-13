@@ -22,7 +22,7 @@ async function fetchResumeFile(file: string, signal?: AbortSignal): Promise<Resp
 const YearMonth = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "expected YYYY-MM");
 
 /** The subset of JSON Resume (https://jsonresume.org/schema) this app reads. */
-const JsonResume = z.object({
+const JsonResumeSchema = z.object({
   basics: z.object({
     name: z.string(),
     location: z.object({ city: z.string() }),
@@ -47,10 +47,10 @@ const JsonResume = z.object({
   ),
 });
 
-export type JsonResume = z.infer<typeof JsonResume>;
+export type JsonResume = z.infer<typeof JsonResumeSchema>;
 
 export async function getResume(): Promise<JsonResume> {
-  return JsonResume.parse(await (await fetchResumeFile("resume.json")).json());
+  return JsonResumeSchema.parse(await (await fetchResumeFile("resume.json")).json());
 }
 
 export async function getResumeMarkdown(signal?: AbortSignal): Promise<string> {

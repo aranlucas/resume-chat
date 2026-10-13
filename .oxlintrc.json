@@ -19,6 +19,9 @@
     },
     "react": {
       "version": "19.2.7"
+    },
+    "tailwindcss": {
+      "entryPoint": "src/app/globals.css"
     }
   },
   "rules": {

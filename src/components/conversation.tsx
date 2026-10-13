@@ -28,9 +28,13 @@ export const ConversationScrollButton = () => {
   return (
     <button
       type="button"
-      onClick={() => scrollToBottom()}
+      onClick={() => {
+        Promise.resolve(scrollToBottom()).catch((error: unknown) => {
+          console.error("Failed to scroll to the latest message", error);
+        });
+      }}
       aria-label="Scroll to latest"
-      className="bg-sheet text-slate hover:text-ink absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border p-2 shadow-sm"
+      className="absolute inset-s-1/2 inset-be-4 -translate-x-1/2 rounded-full border bg-sheet p-2 text-slate shadow-sm hover:text-ink rtl:translate-x-1/2"
     >
       <ArrowDownIcon aria-hidden="true" className="size-4" />
     </button>

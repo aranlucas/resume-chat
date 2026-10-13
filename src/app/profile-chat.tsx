@@ -20,7 +20,31 @@ const MessageResponse = dynamic(loadMessageResponse);
 
 const createChat = () => new Chat({ transport: new DefaultChatTransport({ api: "/api/chat" }) });
 
-export function ProfileChat({ profile }: { profile: Profile }) {
+type ProfileChatProps = { profile: Profile };
+type ProfilePanelProps = {
+  profile: Profile;
+  hidden: boolean;
+  onAsk: (question: string) => void;
+  disabled: boolean;
+};
+type ProfileHeroProps = { profile: Profile };
+type ProfileLinksProps = { profile: Profile; className?: string };
+type ExperienceProps = {
+  profile: Profile;
+  onAsk: (question: string) => void;
+  disabled: boolean;
+  className?: string;
+};
+type StartersProps = { onAsk: (question: string) => void };
+type TranscriptProps = {
+  messages: UIMessage[];
+  status: string;
+  error: Error | undefined;
+  onRetry: () => void;
+};
+type MessageProps = { message: UIMessage; isFirst: boolean; isStreaming: boolean };
+
+export function ProfileChat({ profile }: ProfileChatProps) {
   // A new Chat per conversation, so a stopped answer can't stream into the next one.
   const [chat, setChat] = useState(createChat);
   const { messages, status, error, sendMessage, stop, regenerate } = useChat({
@@ -35,13 +59,17 @@ export function ProfileChat({ profile }: { profile: Profile }) {
 
   const ask = (text: string) => {
     if (!text.trim() || isLoading) return;
-    void loadMessageResponse();
+    loadMessageResponse().catch((caughtError: unknown) => {
+      console.error("Failed to load the response renderer", caughtError);
+    });
     setInput("");
-    void sendMessage({ text: text.trim() });
+    sendMessage({ text: text.trim() }).catch((caughtError: unknown) => {
+      console.error("Failed to send the message", caughtError);
+    });
   };
 
   return (
-    <div className="lg:grid lg:h-dvh lg:grid-cols-[minmax(360px,440px)_1fr]">
+    <div className="lg:grid lg:h-dvh lg:grid-cols-chat">
       <ProfilePanel profile={profile} hidden={hasMessages} onAsk={ask} disabled={isLoading} />
 
       <section className={cn("flex flex-col lg:h-dvh lg:min-h-0", hasMessages && "h-dvh")}>
@@ -59,11 +87,13 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               <button
                 type="button"
                 onClick={() => {
-                  void stop();
+                  stop().catch((caughtError: unknown) => {
+                    console.error("Failed to stop the response", caughtError);
+                  });
                   setChat(createChat());
                   inputRef.current?.focus();
                 }}
-                className="text-slate hover:text-ink rounded-md px-3 py-2 text-sm"
+                className="rounded-md px-3 py-2 text-sm text-slate hover:text-ink"
               >
                 New conversation
               </button>
@@ -75,7 +105,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
 
         {hasMessages ? (
           <Conversation className="min-h-0">
-            <ConversationContent className="mx-auto flex w-full max-w-[44rem] flex-col px-5 sm:px-8">
+            <ConversationContent className="mx-auto flex w-full max-w-176 flex-col px-5 sm:px-8">
               <Transcript
                 messages={messages}
                 status={status}
@@ -87,15 +117,15 @@ export function ProfileChat({ profile }: { profile: Profile }) {
           </Conversation>
         ) : (
           <div className="flex flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
-            <div className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col px-5 sm:px-8">
+            <div className="mx-auto flex w-full max-w-176 flex-1 flex-col px-5 sm:px-8">
               <Starters onAsk={ask} />
             </div>
           </div>
         )}
 
-        <div className="bg-paper sticky bottom-0 px-5 pt-2 pb-4 sm:px-8">
+        <div className="sticky inset-be-0 bg-paper px-5 pbs-2 pbe-4 sm:px-8">
           <form
-            className="bg-sheet focus-within:border-cobalt mx-auto flex max-w-[44rem] items-end gap-2 rounded-lg border p-2 transition-colors"
+            className="mx-auto flex max-w-176 items-end gap-2 rounded-lg border bg-sheet p-2 transition-colors focus-within:border-cobalt"
             onSubmit={(e) => {
               e.preventDefault();
               ask(input);
@@ -110,7 +140,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               name="question"
               rows={1}
               placeholder="Ask about experience, projects, or skills"
-              className="placeholder:text-slate field-sizing-content max-h-40 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-base outline-none focus-visible:outline-none"
+              className="field-sizing-content max-h-40 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-base outline-none placeholder:text-slate"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -125,7 +155,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               <button
                 type="button"
                 onClick={() => void stop()}
-                className="text-ink hover:bg-cobalt-wash h-10 shrink-0 rounded-md border px-4 text-sm font-semibold"
+                className="h-10 shrink-0 rounded-md border px-4 text-sm font-semibold text-ink hover:bg-cobalt-wash"
               >
                 Stop
               </button>
@@ -133,19 +163,19 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="bg-cobalt text-sheet h-10 shrink-0 rounded-md px-5 text-sm font-semibold transition-opacity disabled:opacity-40"
+                className="h-10 shrink-0 rounded-md bg-cobalt px-5 text-sm font-semibold text-sheet transition-opacity disabled:opacity-40"
               >
                 Ask
               </button>
             )}
           </form>
-          <p className="text-slate mx-auto mt-2 max-w-[44rem] px-1 text-[13px]">
+          <p className="mx-auto mbs-2 max-w-176 px-1 text-13px text-slate">
             Answers come from my resume via a free AI model and can be wrong.{" "}
             <a
               href="/resume"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-ink font-semibold underline underline-offset-2"
+              className="font-semibold underline underline-offset-2 hover:text-ink"
             >
               Check the resume
             </a>{" "}
@@ -154,7 +184,7 @@ export function ProfileChat({ profile }: { profile: Profile }) {
               href="https://github.com/aranlucas/resume-chat"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-ink underline underline-offset-2"
+              className="underline underline-offset-2 hover:text-ink"
             >
               How it&apos;s built
             </a>
@@ -166,28 +196,18 @@ export function ProfileChat({ profile }: { profile: Profile }) {
           profile={profile}
           onAsk={ask}
           disabled={isLoading}
-          className="px-5 pb-10 sm:px-8 lg:hidden"
+          className="px-5 pbe-10 sm:px-8 lg:hidden"
         />
       )}
     </div>
   );
 }
 
-function ProfilePanel({
-  profile,
-  hidden,
-  onAsk,
-  disabled,
-}: {
-  profile: Profile;
-  hidden: boolean;
-  onAsk: (question: string) => void;
-  disabled: boolean;
-}) {
+function ProfilePanel({ profile, hidden, onAsk, disabled }: ProfilePanelProps) {
   return (
     <aside
       className={cn(
-        "lg:flex lg:flex-col lg:overflow-y-auto lg:border-r lg:px-10 lg:pt-14 lg:pb-10",
+        "lg:flex lg:flex-col lg:overflow-y-auto lg:border-e lg:px-10 lg:pbs-14 lg:pbe-10",
         hidden && "hidden",
       )}
     >
@@ -197,31 +217,31 @@ function ProfilePanel({
   );
 }
 
-function ProfileHero({ profile }: { profile: Profile }) {
+function ProfileHero({ profile }: ProfileHeroProps) {
   return (
-    <div className="px-5 pt-10 sm:px-8 lg:p-0">
+    <div className="px-5 pbs-10 sm:px-8 lg:p-0">
       <div className="relative">
-        <div className="absolute top-0 right-0 lg:hidden">
+        <div className="absolute inset-e-0 inset-bs-0 lg:hidden">
           <ThemeToggle />
         </div>
-        <h1 className="text-[clamp(2.75rem,6vw,4rem)] leading-[0.95] font-bold tracking-[-0.035em]">
+        <h1 className="text-hero leading-hero font-bold tracking-hero">
           Lucas
           <br />
           Arango
         </h1>
       </div>
-      <p className="text-slate mt-6 max-w-[34ch] text-[17px] leading-relaxed">
+      <p className="mbs-6 max-w-34ch text-17px leading-relaxed text-slate">
         Senior software engineer in {profile.location}. Ten years at DoorDash, AWS, and Amazon. I
         led engineering on Ask DoorDash&apos;s grocery agent, which turns recipes and photos into
         carts.
       </p>
 
-      <ProfileLinks profile={profile} className="mt-5" />
+      <ProfileLinks profile={profile} className="mbs-5" />
     </div>
   );
 }
 
-function ProfileLinks({ profile, className }: { profile: Profile; className?: string }) {
+function ProfileLinks({ profile, className }: ProfileLinksProps) {
   return (
     <div className={cn("flex flex-wrap gap-x-5 gap-y-2 text-sm", className)}>
       {[...profile.links, { label: "Resume", href: "/resume" }].map((l) => (
@@ -239,28 +259,18 @@ function ProfileLinks({ profile, className }: { profile: Profile; className?: st
   );
 }
 
-function Experience({
-  profile,
-  onAsk,
-  disabled,
-  className,
-}: {
-  profile: Profile;
-  onAsk: (question: string) => void;
-  disabled: boolean;
-  className?: string;
-}) {
+function Experience({ profile, onAsk, disabled, className }: ExperienceProps) {
   return (
     <div className={className}>
-      <h2 className="mt-10 text-sm font-semibold">Experience</h2>
-      <ol className="mt-3 border-t">
+      <h2 className="mbs-10 text-sm font-semibold">Experience</h2>
+      <ol className="mbs-3 border-bs">
         {profile.roles.map((r) => (
           <li
             key={r.company}
-            className="group relative grid grid-cols-[5.5rem_1fr_auto] gap-x-3 border-b py-3.5"
+            className="group relative grid grid-cols-experience gap-x-3 border-be py-3.5"
           >
-            <span className="text-slate row-span-3 pt-px text-sm tabular-nums">{r.years}</span>
-            <p className="group-hover:text-cobalt group-has-[:focus-visible]:text-cobalt font-semibold">
+            <span className="row-span-3 pbs-px text-sm text-slate tabular-nums">{r.years}</span>
+            <p className="font-semibold group-hover:text-cobalt group-has-[:focus-visible]:text-cobalt">
               {r.company}
             </p>
             <button
@@ -268,13 +278,15 @@ function Experience({
               disabled={disabled}
               onClick={() => onAsk(r.question)}
               title={r.question}
-              className="text-slate group-hover:text-cobalt group-has-[:focus-visible]:text-cobalt focus-visible:after:outline-cobalt self-start pt-px text-sm font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 disabled:cursor-wait"
+              className="self-start pbs-px text-sm font-medium text-slate group-hover:text-cobalt group-has-[:focus-visible]:text-cobalt after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-cobalt disabled:cursor-wait"
             >
               Ask<span className="sr-only"> about {r.company}</span>{" "}
               <span aria-hidden="true">→</span>
             </button>
-            <p className="text-slate col-span-2 col-start-2 text-sm">{r.role}</p>
-            {r.note && <p className="col-span-2 col-start-2 mt-1 text-sm leading-snug">{r.note}</p>}
+            <p className="col-span-2 col-start-2 text-sm text-slate">{r.role}</p>
+            {r.note && (
+              <p className="col-span-2 col-start-2 mbs-1 text-sm leading-snug">{r.note}</p>
+            )}
           </li>
         ))}
       </ol>
@@ -289,20 +301,20 @@ const STARTERS = [
   "What languages and platforms does he work in?",
 ];
 
-function Starters({ onAsk }: { onAsk: (question: string) => void }) {
+function Starters({ onAsk }: StartersProps) {
   return (
-    <div className="flex flex-1 flex-col justify-end pt-6 pb-6 lg:pt-16">
-      <p className="text-slate max-w-[46ch] text-[17px] leading-relaxed">
+    <div className="flex flex-1 flex-col justify-end py-6 lg:pbs-16">
+      <p className="max-w-46ch text-17px leading-relaxed text-slate">
         Ask what you&apos;d ask me on a first call. Answers come from my resume, so you can skip the
         skim.
       </p>
-      <ul className="mt-6 border-t">
+      <ul className="mbs-6 border-bs">
         {STARTERS.map((q) => (
-          <li key={q} className="border-b">
+          <li key={q} className="border-be">
             <button
               type="button"
               onClick={() => onAsk(q)}
-              className="hover:text-cobalt w-full py-4 text-left text-xl leading-snug font-semibold tracking-[-0.01em] sm:text-2xl"
+              className="w-full py-4 text-start text-xl leading-snug font-semibold tracking-micro hover:text-cobalt sm:text-2xl"
             >
               {q}
             </button>
@@ -313,24 +325,14 @@ function Starters({ onAsk }: { onAsk: (question: string) => void }) {
   );
 }
 
-function Transcript({
-  messages,
-  status,
-  error,
-  onRetry,
-}: {
-  messages: UIMessage[];
-  status: string;
-  error: Error | undefined;
-  onRetry: () => void;
-}) {
+function Transcript({ messages, status, error, onRetry }: TranscriptProps) {
   const last = messages.at(-1);
   const isWaiting =
     (status === "submitted" || status === "streaming") &&
     !(last?.role === "assistant" && hasText(last));
 
   return (
-    <div className="flex flex-col pt-4 pb-8">
+    <div className="flex flex-col pbs-4 pbe-8">
       {messages.map((message, index) => (
         <Message
           key={message.id}
@@ -343,7 +345,7 @@ function Transcript({
       {isWaiting && <Thinking />}
 
       {error && (
-        <div className="text-danger mt-4 text-[17px]" role="alert">
+        <div className="mbs-4 text-17px text-danger" role="alert">
           {error.message || "The answer didn't come through."}{" "}
           <button type="button" onClick={onRetry} className="font-semibold underline">
             Try again
@@ -363,23 +365,15 @@ const textParts = (message: UIMessage) =>
 
 const hasText = (message: UIMessage) => textParts(message).some((text) => text.trim());
 
-function Message({
-  message,
-  isFirst,
-  isStreaming,
-}: {
-  message: UIMessage;
-  isFirst: boolean;
-  isStreaming: boolean;
-}) {
+function Message({ message, isFirst, isStreaming }: MessageProps) {
   const texts = textParts(message);
 
   if (message.role === "user") {
     return (
       <h2
         className={cn(
-          "text-cobalt text-xl leading-snug font-semibold tracking-[-0.01em] sm:text-2xl",
-          !isFirst && "mt-10 border-t pt-10",
+          "text-xl leading-snug font-semibold tracking-micro text-cobalt sm:text-2xl",
+          !isFirst && "mbs-10 border-bs pbs-10",
         )}
       >
         {texts.join("")}
@@ -389,7 +383,7 @@ function Message({
   // Until the first words arrive, the transcript shows <Thinking /> instead.
   if (!hasText(message)) return null;
   return (
-    <div className="mt-4 text-[17px] leading-relaxed">
+    <div className="mbs-4 text-17px leading-relaxed">
       <MessageResponse className={cn(isStreaming && "caret")}>{texts.join("")}</MessageResponse>
     </div>
   );
@@ -398,7 +392,7 @@ function Message({
 /** A tiny resume whose lines get highlighted one by one while the answer is on its way. */
 function Thinking() {
   return (
-    <div className="mt-4 flex items-center gap-3 text-[17px]" role="status" aria-live="polite">
+    <div className="mbs-4 flex items-center gap-3 text-17px" role="status" aria-live="polite">
       <span className="resume-sheet" aria-hidden="true">
         <span />
         <span />

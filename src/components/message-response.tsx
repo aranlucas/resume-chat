@@ -9,10 +9,7 @@ import { memo, type ComponentProps } from "react";
 // and memo skips re-rendering unless the text changed.
 export const MessageResponse = memo(
   ({ className, ...props }: ComponentProps<typeof TypesetResponse>) => (
-    <TypesetResponse
-      className={cn("[--typeset-flow:0.75em] [--typeset-leading:1.625]", className)}
-      {...props}
-    />
+    <TypesetResponse className={cn("typeset-chat-prose", className)} {...props} />
   ),
   (prev, next) => prev.children === next.children && prev.className === next.className,
 );

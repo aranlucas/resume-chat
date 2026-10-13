@@ -22,12 +22,11 @@ type ProseTag =
   | "h5"
   | "h6";
 
+type PlainElementProps<Tag extends ProseTag> = ComponentProps<Tag> & { node?: unknown };
+
 function plainElement<Tag extends ProseTag>(tag: Tag) {
-  return ({
-    node: _node,
-    className: _className,
-    ...props
-  }: ComponentProps<Tag> & { node?: unknown }) => createElement(tag, props);
+  return ({ node: _node, className: _className, ...props }: PlainElementProps<Tag>) =>
+    createElement(tag, props);
 }
 
 // Stable across streaming renders. Only simple prose loses Streamdown's utilities;
@@ -49,8 +48,8 @@ const typesetComponents: Components = {
   h4: plainElement("h4"),
   h5: plainElement("h5"),
   h6: plainElement("h6"),
-  code: (props) => <div data-not-typeset>{createElement(defaultComponents.code!, props)}</div>,
-  table: (props) => <div data-not-typeset>{createElement(defaultComponents.table!, props)}</div>,
+  code: (props) => <div data-not-typeset>{createElement(defaultComponents.code, props)}</div>,
+  table: (props) => <div data-not-typeset>{createElement(defaultComponents.table, props)}</div>,
 };
 
 // This small client boundary also renders on the server. The resume can share
@@ -63,7 +62,7 @@ export function TypesetResponse({ className, ...props }: ComponentProps<typeof S
       linkSafety={{ enabled: false }}
       className={cn(
         // Restore component-layer margins underneath Streamdown's root space-y utilities.
-        "typeset [&_a]:text-cobalt text-[17px] [--typeset-font-heading:var(--font-schibsted)] [--typeset-font-mono:var(--font-mono)] [&_a]:decoration-current [&_a]:underline-offset-2 [&>*]:[margin-block:revert-layer]",
+        "typeset typeset-restore-child-margins text-17px typeset-fonts [&_a]:text-cobalt [&_a]:decoration-current [&_a]:underline-offset-2",
         className,
       )}
     />

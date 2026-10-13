@@ -32,6 +32,11 @@ const server = createServer((request, response) => {
 });
 server.listen(0, "127.0.0.1");
 await once(server, "listening");
+const address = server.address();
+if (address === null || typeof address === "string") {
+  throw new Error("The fixture server did not bind to a TCP port.");
+}
+
 try {
   const child = spawn(
     process.execPath,
@@ -40,13 +45,22 @@ try {
       stdio: "inherit",
       env: {
         ...process.env,
-        RESUME_API_URL: `http://127.0.0.1:${server.address().port}`,
+        RESUME_API_URL: `http://127.0.0.1:${address.port}`,
         OPENROUTER_API_KEY: "",
         NEXT_TELEMETRY_DISABLED: "1",
       },
     },
   );
-  const [code] = await once(child, "exit");
+  const code = await new Promise(
+    /**
+     * @param {(code: number | null) => void} resolve
+     * @param {(error: Error) => void} reject
+     */
+    (resolve, reject) => {
+      child.once("error", reject);
+      child.once("exit", (exitCode) => resolve(exitCode));
+    },
+  );
   process.exitCode = code ?? 1;
 } finally {
   server.closeAllConnections();

@@ -10,9 +10,9 @@ export default async function Resume() {
   const markdown = await getResumeMarkdown();
 
   return (
-    <main className="mx-auto max-w-[44rem] px-5 pt-10 pb-16 sm:px-8 sm:pt-14">
-      <div className="mb-10 flex items-center justify-between gap-4">
-        <Link href="/" className="text-slate hover:text-cobalt text-sm">
+    <main className="mx-auto max-w-176 px-5 pbs-10 pbe-16 sm:px-8 sm:pbs-14">
+      <div className="mbe-10 flex items-center justify-between gap-4">
+        <Link href="/" className="text-sm text-slate hover:text-cobalt">
           ← Ask Lucas
         </Link>
         <ThemeToggle />

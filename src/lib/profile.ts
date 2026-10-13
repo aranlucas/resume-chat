@@ -8,9 +8,11 @@ interface Role {
   question: string;
 }
 
+type Highlight = { note: string; question: string };
+
 // One-liners and suggested questions for the timeline, keyed by company or
 // school name in the resume. Entries without one still appear.
-const HIGHLIGHTS: Record<string, { note: string; question: string }> = {
+const HIGHLIGHTS: Record<string, Highlight> = {
   DoorDash: {
     note: "Led Ask DoorDash's grocery agent from prototype to launch",
     question: "What did Lucas build at DoorDash, and what was the impact?",

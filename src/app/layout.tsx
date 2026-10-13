@@ -7,13 +7,15 @@ import { type ReactNode } from "react";
 
 const schibsted = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-schibsted" });
 
+type RootLayoutProps = { children: ReactNode };
+
 export const metadata = {
   title: "Lucas Arango — Ask about my work",
   description:
     "Senior software engineer building AI agents at DoorDash. Ask an agent anything about his experience.",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={schibsted.variable} suppressHydrationWarning>
       <body className="font-sans antialiased">

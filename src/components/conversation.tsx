@@ -24,14 +24,18 @@ export const ConversationContent = (props: ComponentProps<typeof StickToBottom.C
 
 export const ConversationScrollButton = () => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
-  if (isAtBottom) return null;
+
+  if (isAtBottom) {
+    return null;
+  }
+
   return (
     <button
       type="button"
       onClick={() => {
-        Promise.resolve(scrollToBottom()).catch((error: unknown) => {
-          console.error("Failed to scroll to the latest message", error);
-        });
+        Promise.resolve(scrollToBottom()).catch(
+          console.error.bind(console, "Failed to scroll to the latest message"),
+        );
       }}
       aria-label="Scroll to latest"
       className="absolute inset-s-1/2 inset-be-4 -translate-x-1/2 rounded-full border bg-sheet p-2 text-slate shadow-sm hover:text-ink rtl:translate-x-1/2"

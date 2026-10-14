@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { z } from "zod";
 import { afterEach, beforeEach, test, vi } from "vitest";
 import { POST } from "@/app/api/chat/route";
 
@@ -10,8 +11,12 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY;
-  else process.env.OPENROUTER_API_KEY = originalKey;
+
+  if (originalKey === undefined) {
+    delete process.env.OPENROUTER_API_KEY;
+  } else {
+    process.env.OPENROUTER_API_KEY = originalKey;
+  }
 });
 
 const question = {
@@ -20,45 +25,21 @@ const question = {
   parts: [{ type: "text", text: "What did Lucas build?" }],
 };
 
-interface ProviderMessage {
-  role: string;
-  content: unknown;
-}
+const JsonPayload = z.json();
 
-interface ProviderOptions {
-  sort: string;
-}
+type RequestPayload = z.infer<typeof JsonPayload>;
 
-interface ProviderReasoning {
-  effort: string;
-}
+const ProviderRequest = z.object({
+  model: z.string(),
+  models: z.array(z.string()).optional(),
+  provider: z.object({ sort: z.string() }),
+  reasoning: z.object({ effort: z.string() }).optional(),
+  messages: z.array(z.object({ role: z.string(), content: z.json() })),
+});
 
-interface ProviderRequestBody {
-  model: string;
-  models?: string[];
-  provider: ProviderOptions;
-  reasoning?: ProviderReasoning;
-  messages: ProviderMessage[];
-}
+type ProviderRequestBody = z.infer<typeof ProviderRequest>;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isProviderRequestBody(value: unknown): value is ProviderRequestBody {
-  return (
-    isRecord(value) &&
-    typeof value.model === "string" &&
-    isRecord(value.provider) &&
-    typeof value.provider.sort === "string" &&
-    Array.isArray(value.messages) &&
-    value.messages.every(
-      (message) => isRecord(message) && typeof message.role === "string" && "content" in message,
-    )
-  );
-}
-
-function request(body: unknown) {
+function request(body: RequestPayload) {
   return new Request("http://localhost/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -68,6 +49,7 @@ function request(body: unknown) {
 
 test("a missing server key returns 503 without making an upstream request", async () => {
   process.env.OPENROUTER_API_KEY = " ";
+
   const upstream = vi
     .spyOn(globalThis, "fetch")
     .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
@@ -83,7 +65,8 @@ test("malformed requests return 400 before fetching the resume or calling the mo
   const upstream = vi
     .spyOn(globalThis, "fetch")
     .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
-  const invalidBodies = [
+
+  const invalidBodies: RequestPayload[] = [
     null,
     [],
     {},
@@ -102,6 +85,7 @@ test("malformed requests return 400 before fetching the resume or calling the mo
       POST(request(body)).then(async (response) => {
         assert.equal(response.status, 400, JSON.stringify(body));
         assert.match(await response.text(), /conversation is invalid or too long/);
+
         return response;
       }),
     ),
@@ -110,6 +94,7 @@ test("malformed requests return 400 before fetching the resume or calling the mo
   const malformed = await POST(
     new Request("http://localhost/api/chat", { method: "POST", body: "{" }),
   );
+
   assert.equal(malformed.status, 400);
   assert.equal(upstream.mock.calls.length, 0);
 });
@@ -117,16 +102,16 @@ test("malformed requests return 400 before fetching the resume or calling the mo
 test("valid history streams a follow-up answer without reasoning", async () => {
   let providerBody: ProviderRequestBody | undefined;
   vi.spyOn(globalThis, "fetch").mockImplementation(
-    (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+      const { url } = upstreamRequest;
+
       if (url.endsWith("/resume.md")) {
-        return Promise.resolve(new Response("Lucas built an AI grocery agent."));
+        return new Response("Lucas built an AI grocery agent.");
       }
+
       assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
-      assert.ok(init && typeof init.body === "string");
-      const parsedBody: unknown = JSON.parse(init.body);
-      assert.ok(isProviderRequestBody(parsedBody));
-      providerBody = parsedBody;
+      providerBody = ProviderRequest.parse(await upstreamRequest.json());
 
       const chunks = [
         { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
@@ -136,15 +121,16 @@ test("valid history streams a follow-up answer without reasoning", async () => {
           usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
         },
       ];
+
       const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
-      return Promise.resolve(
-        new Response(`${stream}data: [DONE]\n\n`, {
-          headers: { "Content-Type": "text/event-stream" },
-        }),
-      );
+
+      return new Response(`${stream}data: [DONE]\n\n`, {
+        headers: { "Content-Type": "text/event-stream" },
+      });
     },
   );
-  const history = [
+
+  const history: RequestPayload[] = [
     { ...question, id: "first-question" },
     {
       id: "first-answer",
@@ -184,6 +170,7 @@ test("valid history streams a follow-up answer without reasoning", async () => {
 
 test("a resume outage returns a useful 503 response", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
+
   const upstream = vi
     .spyOn(globalThis, "fetch")
     .mockResolvedValue(new Response("Source outage details", { status: 503 }));
@@ -198,10 +185,12 @@ test("a resume outage returns a useful 503 response", async () => {
 test("a model failure becomes a safe error in the response stream", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const { url } = new Request(input);
+
     if (url.endsWith("/resume.md")) {
       return Promise.resolve(new Response("Lucas's public resume."));
     }
+
     return Promise.resolve(
       Response.json({ error: { message: "Private provider error", code: 400 } }, { status: 400 }),
     );

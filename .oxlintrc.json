@@ -8,11 +8,6 @@
     "./node_modules/@aranlucas/oxforge/configs/type-aware.json"
   ],
   "plugins": ["import", "jsx-a11y", "nextjs", "react", "typescript", "unicorn"],
-  "categories": {
-    "correctness": "error",
-    "suspicious": "warn",
-    "perf": "warn"
-  },
   "settings": {
     "next": {
       "rootDir": "."
@@ -24,84 +19,6 @@
       "entryPoint": "src/app/globals.css"
     }
   },
-  "rules": {
-    "react/self-closing-comp": "warn",
-    "react/react-in-jsx-scope": "off",
-    "react-hooks/exhaustive-deps": "warn",
-    "import/no-named-export": "off",
-    "import/prefer-default-export": "off",
-    "import/exports-last": "off",
-    "import/no-namespace": "off",
-    "import/consistent-type-specifier-style": "off",
-    "import/no-unassigned-import": "off",
-    "react/jsx-props-no-spreading": "off",
-    "react/jsx-max-depth": "off",
-    "react/no-array-index-key": "warn",
-    "unicorn/no-null": "off",
-    "unicorn/max-nested-calls": "off",
-    "eslint/sort-keys": "off",
-    "eslint/sort-imports": "off",
-    "eslint/new-cap": "off",
-    "eslint/no-ternary": "off",
-    "eslint/func-style": "off",
-    "eslint/max-statements": "off",
-    "eslint/no-magic-numbers": "off",
-    "eslint/id-length": "off",
-    "eslint/curly": "off",
-    "jsx-a11y/prefer-tag-over-role": "off",
-    "no-restricted-imports": [
-      "error",
-      {
-        "paths": [
-          {
-            "name": "react-test-renderer",
-            "message": "react-test-renderer is deprecated; use @testing-library/react instead."
-          }
-        ]
-      }
-    ],
-    "eslint/no-console": "off",
-    "eslint/max-lines": "off",
-    "eslint/max-lines-per-function": "off",
-    "eslint/no-inline-comments": "off",
-    "eslint/no-negated-condition": "off",
-    "eslint/no-restricted-imports": "off",
-    "unicorn/no-useless-undefined": "off",
-    "unicorn/prefer-add-event-listener": "off",
-    "unicorn/prefer-code-point": "off",
-    "unicorn/no-this-assignment": "off",
-    "unicorn/consistent-function-scoping": "off",
-    "react/button-has-type": "off",
-    "typescript/no-non-null-assertion": "off",
-    "eslint/radix": "off",
-    "anti-slop/no-array-filter-map": "off",
-    "anti-slop/no-chained-type-assertions": "off",
-    "anti-slop/no-conditional-empty-object-spread": "off",
-    "anti-slop/no-known-value-widening": "off",
-    "anti-slop/no-module-mocking": "off",
-    "anti-slop/no-object-parameters": "off",
-    "anti-slop/no-reduce-accumulator-copy": "off",
-    "anti-slop/no-reflect-apply": "off",
-    "anti-slop/no-reflect-get": "off",
-    "anti-slop/no-runtime-typeof": "off",
-    "anti-slop/no-shape-in-symbol-names": "off",
-    "anti-slop/no-unknown-parameters": "off",
-    "anti-slop/no-unknown-returns": "off",
-    "anti-slop/no-unknown-type-aliases": "off",
-    "anti-slop/no-unsafe-dictionary-type": "off",
-    "anti-slop/no-widen-then-assert": "off",
-    "anti-slop/require-readable-spacing": "off",
-    "anti-slop/require-safety-comment-for-type-assertion": "off"
-  },
-  "overrides": [
-    {
-      "files": ["**/*.test.{ts,tsx}", "**/test/**"],
-      "rules": {
-        "jsx-a11y/aria-role": "off",
-        "jsx-a11y/heading-has-content": "off"
-      }
-    }
-  ],
   "ignorePatterns": [
     ".next/**",
     "node_modules/**",
@@ -129,5 +46,18 @@
   ],
   "options": {
     "typeAware": true
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/app/profile-chat.tsx", "src/components/conversation.tsx"],
+      "rules": {
+        "eslint/no-console": [
+          "error",
+          {
+            "allow": ["error"]
+          }
+        ]
+      }
+    }
+  ]
 }

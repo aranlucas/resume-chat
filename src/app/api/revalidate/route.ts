@@ -8,5 +8,6 @@ import { RESUME_CACHE_TAG } from "@/lib/resume";
 // case is an extra background refetch while visitors keep getting the cached copy.
 export function POST() {
   revalidateTag(RESUME_CACHE_TAG, "max");
+
   return Response.json({ revalidated: true });
 }

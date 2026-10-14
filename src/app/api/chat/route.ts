@@ -24,6 +24,7 @@ const FREE_MODELS = [
 ];
 
 const UNAVAILABLE = "The assistant is temporarily unavailable. Please try again in a moment.";
+
 const INVALID =
   "The conversation is invalid or too long. Please shorten your question or start a new conversation.";
 
@@ -52,17 +53,25 @@ const ChatRequest = z.object({
 
 export async function POST(req: Request) {
   let messages: z.infer<typeof ChatRequest>["messages"];
+
   try {
     const body = await req.text();
-    if (body.length > MAX_BODY_CHARS) throw new Error("Body too large");
+
+    if (body.length > MAX_BODY_CHARS) {
+      throw new Error("Body too large");
+    }
+
     ({ messages } = ChatRequest.parse(JSON.parse(body)));
   } catch {
     return new Response(INVALID, { status: 400 });
   }
 
-  if (!process.env.OPENROUTER_API_KEY?.trim()) return new Response(UNAVAILABLE, { status: 503 });
+  if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    return new Response(UNAVAILABLE, { status: 503 });
+  }
 
   let instructions: string;
+
   try {
     instructions = await getSystemPrompt(
       AbortSignal.any([req.signal, AbortSignal.timeout(10_000)]),
@@ -83,6 +92,7 @@ export async function POST(req: Request) {
     abortSignal: req.signal,
     maxOutputTokens: 2_048,
   });
+
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,

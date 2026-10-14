@@ -15,7 +15,11 @@ async function fetchResumeFile(file: string, signal?: AbortSignal): Promise<Resp
     signal,
     next: { revalidate: 60 * 60 * 24 * 30, tags: [RESUME_CACHE_TAG] },
   });
-  if (!res.ok) throw new Error(`GET ${RESUME_API}/${file} → ${res.status}`);
+
+  if (!res.ok) {
+    throw new Error(`GET ${RESUME_API}/${file} → ${res.status}`);
+  }
+
   return res;
 }
 
@@ -63,6 +67,7 @@ export async function getResumeMarkdown(signal?: AbortSignal): Promise<string> {
  */
 export async function getSystemPrompt(signal?: AbortSignal): Promise<string> {
   const resume = await getResumeMarkdown(signal);
+
   return `You are "Ask Lucas", a friendly assistant that answers questions about Lucas Arango's resume and background.
 
 Guidelines:

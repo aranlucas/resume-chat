@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:http";
+import { z } from "zod";
 
 const resume = {
   basics: {
@@ -20,6 +21,7 @@ const resume = {
     },
   ],
 };
+
 const server = createServer((request, response) => {
   if (request.url === "/resume.json") {
     response.setHeader("Content-Type", "application/json");
@@ -30,12 +32,12 @@ const server = createServer((request, response) => {
     response.writeHead(404).end();
   }
 });
+
 server.listen(0, "127.0.0.1");
+
 await once(server, "listening");
-const address = server.address();
-if (address === null || typeof address === "string") {
-  throw new Error("The fixture server did not bind to a TCP port.");
-}
+
+const address = z.object({ port: z.number().int().positive() }).parse(server.address());
 
 try {
   const child = spawn(
@@ -51,6 +53,7 @@ try {
       },
     },
   );
+
   const code = await new Promise(
     /**
      * @param {(code: number | null) => void} resolve
@@ -61,6 +64,7 @@ try {
       child.once("exit", (exitCode) => resolve(exitCode));
     },
   );
+
   process.exitCode = code ?? 1;
 } finally {
   server.closeAllConnections();

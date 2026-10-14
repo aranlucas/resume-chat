@@ -16,41 +16,51 @@ import { useRef, useState } from "react";
 // Streamdown is heavy, so it loads with the first question rather than the page.
 const loadMessageResponse = () =>
   import("@/components/message-response").then((module) => module.MessageResponse);
+
 const MessageResponse = dynamic(loadMessageResponse);
 
 const createChat = () => new Chat({ transport: new DefaultChatTransport({ api: "/api/chat" }) });
 
 type ProfileChatProps = { profile: Profile };
+
 type ProfilePanelProps = {
   profile: Profile;
   hidden: boolean;
   onAsk: (question: string) => void;
   disabled: boolean;
 };
+
 type ProfileHeroProps = { profile: Profile };
+
 type ProfileLinksProps = { profile: Profile; className?: string };
+
 type ExperienceProps = {
   profile: Profile;
   onAsk: (question: string) => void;
   disabled: boolean;
   className?: string;
 };
+
 type StartersProps = { onAsk: (question: string) => void };
+
 type TranscriptProps = {
   messages: UIMessage[];
   status: string;
   error: Error | undefined;
   onRetry: () => void;
 };
+
 type MessageProps = { message: UIMessage; isFirst: boolean; isStreaming: boolean };
 
 export function ProfileChat({ profile }: ProfileChatProps) {
   // A new Chat per conversation, so a stopped answer can't stream into the next one.
   const [chat, setChat] = useState(createChat);
+
   const { messages, status, error, sendMessage, stop, regenerate } = useChat({
     chat,
     throttle: 50,
   });
+
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,14 +68,17 @@ export function ProfileChat({ profile }: ProfileChatProps) {
   const hasMessages = messages.length > 0;
 
   const ask = (text: string) => {
-    if (!text.trim() || isLoading) return;
-    loadMessageResponse().catch((caughtError: unknown) => {
-      console.error("Failed to load the response renderer", caughtError);
-    });
+    if (!text.trim() || isLoading) {
+      return;
+    }
+
+    loadMessageResponse().catch(
+      console.error.bind(console, "Failed to load the response renderer"),
+    );
     setInput("");
-    sendMessage({ text: text.trim() }).catch((caughtError: unknown) => {
-      console.error("Failed to send the message", caughtError);
-    });
+    sendMessage({ text: text.trim() }).catch(
+      console.error.bind(console, "Failed to send the message"),
+    );
   };
 
   return (
@@ -87,9 +100,7 @@ export function ProfileChat({ profile }: ProfileChatProps) {
               <button
                 type="button"
                 onClick={() => {
-                  stop().catch((caughtError: unknown) => {
-                    console.error("Failed to stop the response", caughtError);
-                  });
+                  stop().catch(console.error.bind(console, "Failed to stop the response"));
                   setChat(createChat());
                   inputRef.current?.focus();
                 }}
@@ -327,6 +338,7 @@ function Starters({ onAsk }: StartersProps) {
 
 function Transcript({ messages, status, error, onRetry }: TranscriptProps) {
   const last = messages.at(-1);
+
   const isWaiting =
     (status === "submitted" || status === "streaming") &&
     !(last?.role === "assistant" && hasText(last));
@@ -380,8 +392,12 @@ function Message({ message, isFirst, isStreaming }: MessageProps) {
       </h2>
     );
   }
+
   // Until the first words arrive, the transcript shows <Thinking /> instead.
-  if (!hasText(message)) return null;
+  if (!hasText(message)) {
+    return null;
+  }
+
   return (
     <div className="mbs-4 text-17px leading-relaxed">
       <MessageResponse className={cn(isStreaming && "caret")}>{texts.join("")}</MessageResponse>

@@ -9,6 +9,7 @@ const subscribe = () => () => {};
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
+
   const mounted = useSyncExternalStore(
     subscribe,
     () => true,

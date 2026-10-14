@@ -12,33 +12,46 @@ type Highlight = { note: string; question: string };
 
 // One-liners and suggested questions for the timeline, keyed by company or
 // school name in the resume. Entries without one still appear.
-const HIGHLIGHTS: Record<string, Highlight> = {
-  DoorDash: {
-    note: "Led Ask DoorDash's grocery agent from prototype to launch",
-    question: "What did Lucas build at DoorDash, and what was the impact?",
-  },
-  "Amazon Web Services (AWS)": {
-    note: "Launched SiteWise Monitor to GA; moved the console to React",
-    question: "What did Lucas ship on the AWS IoT team?",
-  },
-  Amazon: {
-    note: "Built compliance and fraud-investigation systems",
-    question: "What did Lucas work on in Amazon Compliance Technologies?",
-  },
-  "University of Florida": {
-    note: "",
-    question: "Where did Lucas go to school?",
-  },
-};
+const HIGHLIGHTS = new Map<string, Highlight>([
+  [
+    "DoorDash",
+    {
+      note: "Led Ask DoorDash's grocery agent from prototype to launch",
+      question: "What did Lucas build at DoorDash, and what was the impact?",
+    },
+  ],
+  [
+    "Amazon Web Services (AWS)",
+    {
+      note: "Launched SiteWise Monitor to GA; moved the console to React",
+      question: "What did Lucas ship on the AWS IoT team?",
+    },
+  ],
+  [
+    "Amazon",
+    {
+      note: "Built compliance and fraud-investigation systems",
+      question: "What did Lucas work on in Amazon Compliance Technologies?",
+    },
+  ],
+  [
+    "University of Florida",
+    {
+      note: "",
+      question: "Where did Lucas go to school?",
+    },
+  ],
+]);
 
 const year = (yearMonth: string) => yearMonth.slice(0, 4);
 
 const highlight = (name: string) =>
-  HIGHLIGHTS[name] ?? { note: "", question: `What did Lucas do at ${name}?` };
+  HIGHLIGHTS.get(name) ?? { note: "", question: `What did Lucas do at ${name}?` };
 
 /** Fetch and project the public resume into the data the page displays. */
 export async function getProfile() {
   const resume = await getResume();
+
   return {
     name: resume.basics.name,
     location: resume.basics.location.city,
@@ -59,11 +72,13 @@ function toRoles(resume: JsonResume): Role[] {
       role: job.position,
       ...highlight(job.name),
     }));
+
   const schools = resume.education.map((school) => ({
     years: year(school.endDate),
     company: school.institution,
     role: `${school.studyType} ${school.area}, ${school.score}`,
     ...highlight(school.institution),
   }));
+
   return [...jobs, ...schools];
 }

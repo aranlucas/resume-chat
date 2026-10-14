@@ -1,24 +1,54 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, expect, test, vi } from "vitest";
-
-const { setTheme, useTheme } = vi.hoisted(() => ({
-  setTheme: vi.fn(),
-  useTheme: vi.fn(),
-}));
-
-vi.mock("next-themes", () => ({ useTheme }));
-
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ThemeProvider } from "next-themes";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ThemeToggle } from "../../src/components/theme-toggle";
 
 beforeEach(() => {
-  setTheme.mockClear();
-  useTheme.mockReturnValue({ setTheme, resolvedTheme: "light" });
+  localStorage.clear();
+  delete document.documentElement.dataset.theme;
+  vi.stubGlobal("matchMedia", (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  }));
 });
 
-test("theme toggle switches from the resolved light theme to dark", () => {
-  render(<ThemeToggle />);
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+test("theme toggle switches from light to dark and persists the selection", async () => {
+  render(
+    <ThemeProvider defaultTheme="light" enableSystem={false}>
+      <ThemeToggle />
+    </ThemeProvider>,
+  );
 
   fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
 
-  expect(setTheme).toHaveBeenCalledWith("dark");
+  await waitFor(() => {
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+  expect(localStorage.getItem("theme")).toBe("dark");
+  expect(screen.getByRole("button", { name: "Switch to light theme" })).toBeDefined();
+});
+
+test("theme toggle switches from dark to light", async () => {
+  render(
+    <ThemeProvider defaultTheme="dark" enableSystem={false}>
+      <ThemeToggle />
+    </ThemeProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+
+  await waitFor(() => {
+    expect(document.documentElement.dataset.theme).toBe("light");
+  });
+  expect(localStorage.getItem("theme")).toBe("light");
 });

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "next-themes";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { ThemeToggle } from "../../src/components/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 beforeEach(() => {
   localStorage.clear();

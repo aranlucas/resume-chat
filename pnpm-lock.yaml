@@ -178,8 +178,8 @@ importers:
         version: 4.6.5
     devDependencies:
       '@aranlucas/oxforge':
-        specifier: ^0.1.3
-        version: 0.1.3(oxfmt@0.73.0)(oxlint-tailwindcss@1.16.0)(oxlint-tsgolint@7.0.2004)(oxlint@1.88.0(oxlint-tsgolint@7.0.2004))
+        specifier: ^0.2.2
+        version: 0.2.2(oxfmt@0.73.0)(oxlint-tailwindcss@1.16.0)(oxlint-tsgolint@7.0.2004)(oxlint@1.88.0(oxlint-tsgolint@7.0.2004))
       '@testing-library/dom':
         specifier: ^10.4.2
         version: 10.4.2
@@ -257,8 +257,8 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@aranlucas/oxforge@0.1.3':
-    resolution: {integrity: sha512-kC9Yr1Nyu5LSwtEaL+D6Yv8Vd6TQfNcJ1g+j1txiPS9dAnp1zGR/nRB2ih6TT/h2k5y4hCaGDqoauVv0RK9rew==}
+  '@aranlucas/oxforge@0.2.2':
+    resolution: {integrity: sha512-5zmYmM1r4Y+F2TGKwGnzD4lS5wBS+IVVm6bOngWAMxyvuz1ipKtOCjoqRqMBP95b/p+iUtZmQqPsZ+OvoM5/6w==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -2655,7 +2655,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@aranlucas/oxforge@0.1.3(oxfmt@0.73.0)(oxlint-tailwindcss@1.16.0)(oxlint-tsgolint@7.0.2004)(oxlint@1.88.0(oxlint-tsgolint@7.0.2004))':
+  '@aranlucas/oxforge@0.2.2(oxfmt@0.73.0)(oxlint-tailwindcss@1.16.0)(oxlint-tsgolint@7.0.2004)(oxlint@1.88.0(oxlint-tsgolint@7.0.2004))':
     dependencies:
       '@aranlucas/oxlint-plugin-anti-slop': 0.1.0(oxlint@1.88.0(oxlint-tsgolint@7.0.2004))
       '@oxlint/plugins': 1.88.0

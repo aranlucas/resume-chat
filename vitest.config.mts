@@ -11,7 +11,7 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["src/**/*.test.mjs", "src/**/*.test.ts"],
+          include: ["test/**/*.test.mjs", "test/**/*.test.ts"],
           globals: false,
         },
       },
@@ -20,8 +20,8 @@ export default defineConfig({
         test: {
           name: "browser",
           environment: "jsdom",
-          include: ["tests/ui/**/*.test.tsx"],
-          setupFiles: ["./tests/vitest.setup.ts"],
+          include: ["test/ui/**/*.test.tsx"],
+          setupFiles: ["./test/setup.ts"],
           globals: false,
         },
       },

@@ -1,12 +1,3 @@
-import type { OxfmtConfig } from "oxfmt";
-import base from "@aranlucas/oxforge/format-tailwind";
+import { format } from "@aranlucas/oxforge/format";
 
-const config: OxfmtConfig = {
-  ...base,
-  sortTailwindcss: {
-    ...base.sortTailwindcss,
-    stylesheet: "./src/app/globals.css",
-  },
-};
-
-export default config;
+export default format({ sortTailwindcss: { stylesheet: "./src/app/globals.css" } });

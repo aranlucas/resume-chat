@@ -5,6 +5,8 @@ import {
   createUIMessageStreamResponse,
   streamText,
   toUIMessageStream,
+  validateUIMessages,
+  type UIMessage,
 } from "ai";
 import { z } from "zod";
 
@@ -28,42 +30,46 @@ const UNAVAILABLE = "The assistant is temporarily unavailable. Please try again 
 const INVALID =
   "The conversation is invalid or too long. Please shorten your question or start a new conversation.";
 
-// The whole history is resent with each question, so this caps the prompt size.
-const MAX_BODY_CHARS = 128_000;
+// The whole history is resent with each question, so bound its UTF-8 byte size.
+const MAX_BODY_BYTES = 128_000;
 
-// Only user and assistant text reaches the model; anything else the client
-// sends (step markers, metadata, system messages) is dropped.
-const ChatRequest = z.object({
-  messages: z
-    .array(
-      z.object({
-        id: z.string(),
-        role: z.enum(["user", "assistant"]),
-        parts: z
-          .array(z.object({ type: z.string(), text: z.string().optional() }))
-          .transform((parts) =>
-            parts.flatMap((part) =>
-              part.type === "text" && part.text ? [{ type: "text" as const, text: part.text }] : [],
-            ),
-          ),
-      }),
-    )
-    // A stopped answer can have no text left; providers reject empty messages.
-    .transform((messages) => messages.filter((message) => message.parts.length > 0))
-    .refine((messages) => messages.length > 0),
-});
+// The SDK owns message/part structure; this schema only reads the HTTP envelope.
+const ChatRequest = z.object({ messages: z.unknown() });
 
 export async function POST(req: Request) {
-  let messages: z.infer<typeof ChatRequest>["messages"];
+  let messages: UIMessage[];
 
   try {
-    const body = await req.text();
+    const body = await req.arrayBuffer();
 
-    if (body.length > MAX_BODY_CHARS) {
+    if (body.byteLength > MAX_BODY_BYTES) {
       throw new Error("Body too large");
     }
 
-    ({ messages } = ChatRequest.parse(JSON.parse(body)));
+    const validated = await validateUIMessages({
+      messages: ChatRequest.parse(JSON.parse(new TextDecoder().decode(body))).messages,
+    });
+
+    // Client instructions cannot replace the server-owned resume prompt.
+    if (validated.some((message) => message.role !== "user" && message.role !== "assistant")) {
+      throw new Error("Unsupported role");
+    }
+
+    // Only plain text reaches the model, without client metadata/tool payloads.
+    // Preserve whitespace parts inside real answers; discard stopped/empty ones.
+    messages = validated
+      .map(({ id, role, parts }) => ({
+        id,
+        role,
+        parts: parts.flatMap((part) =>
+          part.type === "text" && part.text ? [{ type: "text" as const, text: part.text }] : [],
+        ),
+      }))
+      .filter((message) => message.parts.some((part) => part.text.trim().length > 0));
+
+    if (messages.length === 0) {
+      throw new Error("No usable text");
+    }
   } catch {
     return new Response(INVALID, { status: 400 });
   }

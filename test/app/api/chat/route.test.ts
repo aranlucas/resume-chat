@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 import { afterEach, beforeEach, test, vi } from "vitest";
 import { POST } from "@/app/api/chat/route";
+import { validateUIMessages } from "ai";
 
 const originalKey = process.env.OPENROUTER_API_KEY;
 
@@ -39,11 +40,12 @@ const ProviderRequest = z.object({
 
 type ProviderRequestBody = z.infer<typeof ProviderRequest>;
 
-function request(body: RequestPayload) {
+function request(body: RequestPayload, signal?: AbortSignal) {
   return new Request("http://localhost/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
 }
 
@@ -139,10 +141,31 @@ test("valid history streams a follow-up answer without reasoning", async () => {
       parts: [
         { type: "step-start" },
         { type: "reasoning", text: "Checking the resume.", state: "done" },
-        { type: "text", text: "He built a grocery agent.", state: "done" },
+        { type: "text", text: "He built", state: "done" },
+        { type: "text", text: " " },
+        { type: "text", text: "a grocery agent.", state: "done" },
       ],
     },
-    question,
+    {
+      ...question,
+      metadata: { instructions: "INJECTED metadata" },
+      parts: [
+        {
+          type: "text",
+          text: "What did Lucas build?",
+          providerMetadata: { openrouter: { instructions: "INJECTED provider metadata" } },
+        },
+        { type: "file", mediaType: "text/plain", url: "https://attacker.invalid/INJECTED" },
+        { type: "data-instructions", data: "INJECTED data" },
+        {
+          type: "dynamic-tool",
+          toolName: "INJECTED",
+          toolCallId: "untrusted",
+          state: "input-available",
+          input: { instructions: "INJECTED tool" },
+        },
+      ],
+    },
   ];
 
   const response = await POST(request({ messages: history }));
@@ -167,6 +190,9 @@ test("valid history streams a follow-up answer without reasoning", async () => {
     JSON.stringify(providerBody?.messages[0].content),
     /Lucas built an AI grocery agent/,
   );
+  assert.match(JSON.stringify(providerBody?.messages), /He built a grocery agent\./);
+  assert.doesNotMatch(JSON.stringify(providerBody?.messages), /INJECTED|attacker/);
+  assert.doesNotMatch(JSON.stringify(providerBody?.messages), /Checking the resume/);
 });
 
 test("a resume outage returns a useful 503 response", async () => {
@@ -209,6 +235,7 @@ test("a model failure becomes a safe error in the response stream", async () => 
 test.each([
   { ...question, parts: [] },
   { ...question, parts: [{ type: "text", text: "" }] },
+  { ...question, parts: [{ type: "text", text: " \n\t " }] },
   { ...question, parts: [{ type: "reasoning", text: "Hidden reasoning" }] },
   { ...question, parts: [{ type: "step-start" }] },
 ])("a history without usable text returns 400 before any upstream request: %j", async (message) => {
@@ -235,3 +262,181 @@ test("oversized requests return 400 before any upstream request", async () => {
   assert.equal(response.status, 400);
   assert.equal(upstream.mock.calls.length, 0);
 });
+
+test("real SDK structure validation alone permits histories excluded by app policy", async () => {
+  await assert.rejects(validateUIMessages({ messages: [] }));
+  await assert.rejects(validateUIMessages({ messages: [{ ...question, parts: [] }] }));
+
+  await Promise.all(
+    [
+      [{ ...question, role: "assistant", parts: [] }],
+      [{ ...question, parts: [{ type: "text", text: "" }] }],
+      [{ ...question, role: "system" }],
+    ].map(async (messages) => {
+      assert.deepEqual(await validateUIMessages({ messages }), messages);
+    }),
+  );
+});
+
+const malformedUIParts: Record<string, RequestPayload>[] = [
+  { type: "text", text: "Question", state: "invalid-state" },
+  { type: "text", text: "Question", providerMetadata: "invalid-metadata" },
+  { type: "file", mediaType: "text/plain" },
+  { type: "unknown-part", text: "Unsupported input" },
+];
+
+test.each(malformedUIParts)(
+  "SDK rejects malformed UI parts before any upstream access: %j",
+  async (part) => {
+    const upstream = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("Unexpected upstream"));
+
+    const response = await POST(
+      request({ messages: [{ ...question, parts: [...question.parts, part] }] }),
+    );
+
+    assert.equal(response.status, 400);
+    assert.match(await response.text(), /conversation is invalid or too long/);
+    assert.equal(upstream.mock.calls.length, 0);
+  },
+);
+
+test("UTF-8 byte limit rejects a structurally valid history below the character limit", async () => {
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockRejectedValue(new Error("Unexpected upstream"));
+
+  const body = {
+    messages: [{ ...question, parts: [{ type: "text", text: "💬".repeat(33_000) }] }],
+  };
+
+  assert.ok(JSON.stringify(body).length < 128_000);
+  assert.ok(new TextEncoder().encode(JSON.stringify(body)).byteLength > 128_000);
+  const response = await POST(request(body));
+  assert.equal(response.status, 400);
+  assert.equal(upstream.mock.calls.length, 0);
+});
+
+test("a structurally valid oversized history is rejected before upstream access", async () => {
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockRejectedValue(new Error("Unexpected upstream"));
+
+  const messages = Array.from({ length: 2_000 }, (_, index) => ({
+    ...question,
+    id: `message-${index}`,
+  }));
+
+  await validateUIMessages({ messages });
+  const response = await POST(request({ messages }));
+  assert.equal(response.status, 400);
+  assert.equal(upstream.mock.calls.length, 0);
+});
+
+test("request cancellation aborts resume loading before model access", async () => {
+  const controller = new AbortController();
+  const started = Promise.withResolvers<AbortSignal>();
+
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+      assert.ok(upstreamRequest.url.endsWith("/resume.md"));
+      started.resolve(upstreamRequest.signal);
+
+      return new Promise<Response>((_resolve, reject) => {
+        upstreamRequest.signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Private abort detail", "AbortError")),
+          { once: true },
+        );
+      });
+    });
+
+  const pending = POST(request({ messages: [question] }, controller.signal));
+  const signal = await started.promise;
+  controller.abort();
+  const response = await pending;
+  assert.equal(signal.aborted, true);
+  assert.equal(response.status, 503);
+  assert.match(await response.text(), /temporarily unavailable/);
+  assert.equal(upstream.mock.calls.length, 1);
+});
+
+test("request cancellation reaches the model stream without exposing provider details", async () => {
+  const controller = new AbortController();
+  const started = Promise.withResolvers<AbortSignal>();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    (input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+
+      if (upstreamRequest.url.endsWith("/resume.md")) {
+        return Promise.resolve(new Response("Public fixture resume."));
+      }
+
+      started.resolve(upstreamRequest.signal);
+
+      return new Promise<Response>((_resolve, reject) => {
+        upstreamRequest.signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Private model abort detail", "AbortError")),
+          { once: true },
+        );
+      });
+    },
+  );
+  const response = await POST(request({ messages: [question] }, controller.signal));
+  const pending = response.text();
+  const signal = await started.promise;
+  controller.abort();
+  assert.equal(signal.aborted, true);
+  assert.doesNotMatch(await pending, /Private model abort detail/);
+});
+
+test.each([
+  { messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(127_000) }] }] },
+  {
+    messages: Array.from({ length: 128 }, (_, index) => ({
+      ...question,
+      id: `turn-${index}`,
+      role: index % 2 ? "assistant" : "user",
+    })),
+  },
+])(
+  "valid text/history within the byte budget reaches the real SDK model conversion",
+  async ({ messages }) => {
+    let providerBody: ProviderRequestBody | undefined;
+
+    const upstream = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const upstreamRequest = new Request(input, init);
+
+        if (upstreamRequest.url.endsWith("/resume.md")) {
+          return new Response("Public fixture resume.");
+        }
+
+        providerBody = ProviderRequest.parse(await upstreamRequest.json());
+
+        return new Response(
+          'data: {"choices":[{"delta":{"role":"assistant","content":"Fixture answer."}}]}\n\n' +
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n' +
+            "data: [DONE]\n\n",
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      });
+
+    assert.ok(new TextEncoder().encode(JSON.stringify({ messages })).byteLength <= 128_000);
+    const response = await POST(request({ messages }));
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /Fixture answer/);
+    assert.equal(upstream.mock.calls.length, 2);
+    assert.deepEqual(
+      providerBody?.messages.map(({ role }) => role),
+      ["system", ...messages.map(({ role }) => role)],
+    );
+    assert.equal(providerBody?.messages.at(-1)?.content, messages.at(-1)?.parts[0].text);
+  },
+);

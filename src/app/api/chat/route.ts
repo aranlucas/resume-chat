@@ -43,20 +43,21 @@ export async function POST(req: Request) {
       throw new Error("Unsupported role");
     }
 
-    // Only plain text reaches the model, without client metadata/tool payloads.
-    // Preserve whitespace parts inside real answers; discard stopped/empty ones.
+    // Keep assistant reasoning for follow-up requests, without client metadata/tool payloads.
     messages = validated
       .map(({ id, role, parts }) => ({
         id,
         role,
         parts: parts.flatMap((part) =>
-          part.type === "text" && part.text ? [{ type: "text" as const, text: part.text }] : [],
+          (part.type === "text" || (role === "assistant" && part.type === "reasoning")) && part.text
+            ? [{ type: part.type, text: part.text }]
+            : [],
         ),
       }))
       .filter((message) => message.parts.some((part) => part.text.trim().length > 0));
 
     if (messages.length === 0) {
-      throw new Error("No usable text");
+      throw new Error("No usable content");
     }
   } catch {
     return new Response(INVALID, { status: 400 });
@@ -89,7 +90,6 @@ export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      sendReasoning: false,
       // Provider errors can include internal details; visitors get a generic message.
       onError: () => UNAVAILABLE,
     }),

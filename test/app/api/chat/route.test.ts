@@ -32,10 +32,18 @@ type RequestPayload = z.infer<typeof JsonPayload>;
 
 const ProviderRequest = z.object({
   model: z.string(),
-  messages: z.array(z.object({ role: z.string(), content: z.json() })),
+  messages: z.array(
+    z.object({ role: z.string(), content: z.json(), reasoning_content: z.string().optional() }),
+  ),
 });
 
 type ProviderRequestBody = z.infer<typeof ProviderRequest>;
+
+type ReasoningHistory = {
+  label: string;
+  answerParts: RequestPayload[];
+  answerText: string;
+};
 
 function request(body: RequestPayload, signal?: AbortSignal) {
   return new Request("http://localhost/api/chat", {
@@ -126,104 +134,117 @@ test("malformed requests return 400 before fetching the resume or calling the mo
   assert.equal(upstream.mock.calls.length, 0);
 });
 
-test("valid history streams a follow-up answer without reasoning", async () => {
-  let providerBody: ProviderRequestBody | undefined;
-  vi.spyOn(globalThis, "fetch").mockImplementation(
-    async (input: RequestInfo | URL, init?: RequestInit) => {
-      const upstreamRequest = new Request(input, init);
-      const { url } = upstreamRequest;
+test.each<ReasoningHistory>([
+  {
+    label: "with answer text",
+    answerParts: [
+      { type: "text", text: "He built", state: "done" },
+      { type: "text", text: " " },
+      { type: "text", text: "a grocery agent.", state: "done" },
+    ],
+    answerText: "He built a grocery agent.",
+  },
+  { label: "with reasoning only", answerParts: [], answerText: "" },
+])(
+  "assistant reasoning round-trips through the API $label",
+  async ({ answerParts, answerText }) => {
+    let providerBody: ProviderRequestBody | undefined;
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const upstreamRequest = new Request(input, init);
+        const { url } = upstreamRequest;
 
-      if (url.endsWith("/resume.md")) {
-        return new Response("Lucas built an AI grocery agent.");
-      }
+        if (url.endsWith("/resume.md")) {
+          return new Response("Lucas built an AI grocery agent.");
+        }
 
-      assert.equal(url, "https://freellmapi-production-1175.up.railway.app/v1/chat/completions");
-      assert.equal(upstreamRequest.headers.get("Authorization"), "Bearer test-key");
-      providerBody = ProviderRequest.parse(await upstreamRequest.json());
+        assert.equal(url, "https://freellmapi-production-1175.up.railway.app/v1/chat/completions");
+        assert.equal(upstreamRequest.headers.get("Authorization"), "Bearer test-key");
+        providerBody = ProviderRequest.parse(await upstreamRequest.json());
 
-      const chunks = [
-        { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
-        { choices: [{ delta: { content: "Lucas built an AI grocery agent." } }] },
-        {
-          choices: [{ delta: {}, finish_reason: "stop" }],
-          usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
-        },
-      ];
+        const chunks = [
+          { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
+          { choices: [{ delta: { content: "Lucas built an AI grocery agent." } }] },
+          {
+            choices: [{ delta: {}, finish_reason: "stop" }],
+            usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
+          },
+        ];
 
-      const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
+        const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
 
-      return new Response(`${stream}data: [DONE]\n\n`, {
-        headers: { "Content-Type": "text/event-stream" },
-      });
-    },
-  );
+        return new Response(`${stream}data: [DONE]\n\n`, {
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      },
+    );
 
-  const history: RequestPayload[] = [
-    { id: "stopped-answer", role: "assistant", parts: [{ type: "step-start" }] },
-    { ...question, id: "first-question" },
-    {
-      id: "first-answer",
-      role: "assistant",
-      parts: [
-        { type: "step-start" },
-        { type: "reasoning", text: "Checking the resume.", state: "done" },
-        { type: "text", text: "He built", state: "done" },
-        { type: "text", text: " " },
-        { type: "text", text: "a grocery agent.", state: "done" },
-        { type: "file", mediaType: "text/plain", url: "https://example.com/private.txt" },
-      ],
-      metadata: { private: "Client metadata" },
-    },
-    {
-      ...question,
-      metadata: { instructions: "INJECTED metadata" },
-      parts: [
-        {
-          type: "text",
-          text: "What did Lucas build?",
-          providerMetadata: { openrouter: { instructions: "INJECTED provider metadata" } },
-        },
-        { type: "file", mediaType: "text/plain", url: "https://attacker.invalid/INJECTED" },
-        { type: "data-instructions", data: "INJECTED data" },
-        {
-          type: "dynamic-tool",
-          toolName: "INJECTED",
-          toolCallId: "untrusted",
-          state: "input-available",
-          input: { instructions: "INJECTED tool" },
-        },
-      ],
-    },
-    { id: "empty-answer", role: "assistant", parts: [] },
-  ];
+    const history: RequestPayload[] = [
+      { id: "stopped-answer", role: "assistant", parts: [{ type: "step-start" }] },
+      { ...question, id: "first-question" },
+      {
+        id: "first-answer",
+        role: "assistant",
+        parts: [
+          { type: "step-start" },
+          { type: "reasoning", text: "Checking the resume.", state: "done" },
+          ...answerParts,
+          { type: "file", mediaType: "text/plain", url: "https://example.com/private.txt" },
+        ],
+        metadata: { private: "Client metadata" },
+      },
+      {
+        ...question,
+        metadata: { instructions: "INJECTED metadata" },
+        parts: [
+          {
+            type: "text",
+            text: "What did Lucas build?",
+            providerMetadata: { openrouter: { instructions: "INJECTED provider metadata" } },
+          },
+          { type: "file", mediaType: "text/plain", url: "https://attacker.invalid/INJECTED" },
+          { type: "data-instructions", data: "INJECTED data" },
+          {
+            type: "dynamic-tool",
+            toolName: "INJECTED",
+            toolCallId: "untrusted",
+            state: "input-available",
+            input: { instructions: "INJECTED tool" },
+          },
+        ],
+      },
+      { id: "empty-answer", role: "assistant", parts: [] },
+    ];
 
-  const response = await POST(request({ messages: history }));
-  const stream = await response.text();
+    const response = await POST(request({ messages: history }));
+    const stream = await response.text();
 
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("Content-Type") ?? "", /text\/event-stream/);
-  assert.doesNotMatch(stream, /"type":"reasoning/);
-  assert.match(stream, /"type":"text-delta"/);
-  assert.match(stream, /Lucas built an AI grocery agent/);
-  assert.match(stream, /"type":"finish"/);
-  assert.doesNotMatch(stream, /"type":"error"/);
-  assert.equal(providerBody?.model, "auto");
-  assert.doesNotMatch(
-    JSON.stringify(providerBody),
-    /Checking the resume|private\.txt|Client metadata|stopped-answer/,
-  );
-  assert.deepEqual(
-    providerBody?.messages.map((message) => message.role),
-    ["system", "user", "assistant", "user"],
-  );
-  assert.match(
-    JSON.stringify(providerBody?.messages[0].content),
-    /Lucas built an AI grocery agent/,
-  );
-  assert.match(JSON.stringify(providerBody?.messages), /He built a grocery agent\./);
-  assert.doesNotMatch(JSON.stringify(providerBody?.messages), /INJECTED|attacker/);
-  assert.doesNotMatch(JSON.stringify(providerBody?.messages), /Checking the resume/);
-});
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("Content-Type") ?? "", /text\/event-stream/);
+    assert.match(stream, /"type":"reasoning-delta"/);
+    assert.match(stream, /Checking the resume\./);
+    assert.match(stream, /"type":"text-delta"/);
+    assert.match(stream, /Lucas built an AI grocery agent/);
+    assert.match(stream, /"type":"finish"/);
+    assert.doesNotMatch(stream, /"type":"error"/);
+    assert.equal(providerBody?.model, "auto");
+    assert.doesNotMatch(
+      JSON.stringify(providerBody),
+      /private\.txt|Client metadata|stopped-answer/,
+    );
+    assert.deepEqual(
+      providerBody?.messages.map((message) => message.role),
+      ["system", "user", "assistant", "user"],
+    );
+    assert.match(
+      JSON.stringify(providerBody?.messages[0].content),
+      /Lucas built an AI grocery agent/,
+    );
+    assert.equal(providerBody?.messages[2].content, answerText);
+    assert.doesNotMatch(JSON.stringify(providerBody?.messages), /INJECTED|attacker/);
+    assert.equal(providerBody?.messages[2].reasoning_content, "Checking the resume.");
+  },
+);
 
 test("a resume outage returns a useful 503 response", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});

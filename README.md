@@ -92,9 +92,9 @@ provider failures with a mocked model and synthetic resume data.
 with the model key cleared. Its build output contains a fictional profile and
 is only for verification; use `pnpm build` for a production build.
 
-The public chat endpoint accepts a JSON body of up to 128,000 characters with
-user and assistant messages. Only their text reaches the model; other roles and
-parts are dropped or rejected, and invalid requests return a safe 400 before
+The public chat endpoint accepts a JSON body of up to 128,000 bytes with
+user and assistant messages. Text and assistant reasoning reach the model; other
+roles and parts are dropped or rejected, and invalid requests return a safe 400 before
 loading the resume or calling a model. Resume loading has a 10-second deadline,
 answers are capped at 2,048 tokens, and the function stops after 60 seconds.
 Failures before streaming return a safe 503; failures after streaming starts

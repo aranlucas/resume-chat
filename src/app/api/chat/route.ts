@@ -1,5 +1,5 @@
 import { getSystemPrompt } from "@/lib/resume";
-import { openrouter } from "@openrouter/ai-sdk-provider";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -12,18 +12,6 @@ import { z } from "zod";
 
 // Free providers can take longer to start streaming during busy periods.
 export const maxDuration = 60;
-
-// Free OpenRouter models, tried in order when one is rate limited or down.
-// Every free model reasons by default, and the page never shows reasoning, so
-// it's turned off: apodex then answers in ~1-3s versus ~4-11s for
-// "openrouter/free", which also can't be asked to skip reasoning (it routes to
-// a safety classifier instead). See
-// https://openrouter.ai/collections/free-models for the live list.
-const FREE_MODELS = [
-  "apodex/apodex-1.1-mini:free",
-  "nvidia/nemotron-3-super-120b-a12b:free",
-  "google/gemma-4-26b-a4b-it:free",
-];
 
 const UNAVAILABLE = "The assistant is temporarily unavailable. Please try again in a moment.";
 
@@ -74,10 +62,6 @@ export async function POST(req: Request) {
     return new Response(INVALID, { status: 400 });
   }
 
-  if (!process.env.OPENROUTER_API_KEY?.trim()) {
-    return new Response(UNAVAILABLE, { status: 503 });
-  }
-
   let instructions: string;
 
   try {
@@ -88,12 +72,14 @@ export async function POST(req: Request) {
     return new Response(UNAVAILABLE, { status: 503 });
   }
 
+  const freellm = createOpenAICompatible({
+    name: "freellmapi",
+    baseURL: "https://freellmapi-production-1175.up.railway.app/v1",
+    apiKey: process.env.FREELLM_API_KEY,
+  });
+
   const result = streamText({
-    model: openrouter.chat(FREE_MODELS[0], {
-      models: FREE_MODELS,
-      reasoning: { effort: "none" },
-      provider: { sort: "latency" },
-    }),
+    model: freellm("auto"),
     instructions,
     messages: await convertToModelMessages(messages),
     abortSignal: req.signal,

@@ -4,19 +4,19 @@ import { afterEach, beforeEach, test, vi } from "vitest";
 import { POST } from "@/app/api/chat/route";
 import { validateUIMessages } from "ai";
 
-const originalKey = process.env.OPENROUTER_API_KEY;
+const originalKey = process.env.FREELLM_API_KEY;
 
 beforeEach(() => {
-  process.env.OPENROUTER_API_KEY = "test-key";
+  process.env.FREELLM_API_KEY = "test-key";
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
 
   if (originalKey === undefined) {
-    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.FREELLM_API_KEY;
   } else {
-    process.env.OPENROUTER_API_KEY = originalKey;
+    process.env.FREELLM_API_KEY = originalKey;
   }
 });
 
@@ -32,9 +32,6 @@ type RequestPayload = z.infer<typeof JsonPayload>;
 
 const ProviderRequest = z.object({
   model: z.string(),
-  models: z.array(z.string()).optional(),
-  provider: z.object({ sort: z.string() }),
-  reasoning: z.object({ effort: z.string() }).optional(),
   messages: z.array(z.object({ role: z.string(), content: z.json() })),
 });
 
@@ -49,18 +46,40 @@ function request(body: RequestPayload, signal?: AbortSignal) {
   });
 }
 
-test("a missing server key returns 503 without making an upstream request", async () => {
-  process.env.OPENROUTER_API_KEY = " ";
+test("a missing server key reaches Railway and uses the normal provider error stream", async () => {
+  delete process.env.FREELLM_API_KEY;
+  vi.spyOn(console, "error").mockImplementation(() => {});
 
   const upstream = vi
     .spyOn(globalThis, "fetch")
-    .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
+    .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+
+      if (upstreamRequest.url.endsWith("/resume.md")) {
+        return new Response("Lucas's public resume.");
+      }
+
+      assert.equal(
+        upstreamRequest.url,
+        "https://freellmapi-production-1175.up.railway.app/v1/chat/completions",
+      );
+      assert.equal(upstreamRequest.headers.has("Authorization"), false);
+      assert.equal(ProviderRequest.parse(await upstreamRequest.json()).model, "auto");
+
+      return Response.json(
+        { error: { message: "Invalid API key", type: "authentication_error" } },
+        { status: 401 },
+      );
+    });
 
   const response = await POST(request({ messages: [question] }));
+  const stream = await response.text();
 
-  assert.equal(response.status, 503);
-  assert.match(await response.text(), /temporarily unavailable/);
-  assert.equal(upstream.mock.calls.length, 0);
+  assert.equal(response.status, 200);
+  assert.match(stream, /"type":"error"/);
+  assert.match(stream, /temporarily unavailable/);
+  assert.doesNotMatch(stream, /Invalid API key/);
+  assert.equal(upstream.mock.calls.length, 2);
 });
 
 test("malformed requests return 400 before fetching the resume or calling the model", async () => {
@@ -78,6 +97,12 @@ test("malformed requests return 400 before fetching the resume or calling the mo
     { messages: [{ role: "user", parts: question.parts }] },
     { messages: [{ ...question, parts: "not an array" }] },
     { messages: [{ ...question, parts: [{ type: "text", text: 42 }] }] },
+    { messages: [{ ...question, parts: [{ type: "text" }] }] },
+    { messages: [{ ...question, parts: [{ type: "text", text: "", state: "invalid" }] }] },
+    { messages: [{ ...question, parts: [] }] },
+    { messages: [{ ...question, parts: [{ type: "text", text: "  \n " }] }] },
+    { messages: [{ ...question, parts: [{ type: "reasoning", text: "Thinking." }] }] },
+    { messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_000) }] }] },
     { messages: [{ ...question, role: "invalid-role" }] },
     { messages: [{ ...question, role: "system" }] },
   ];
@@ -112,7 +137,8 @@ test("valid history streams a follow-up answer without reasoning", async () => {
         return new Response("Lucas built an AI grocery agent.");
       }
 
-      assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
+      assert.equal(url, "https://freellmapi-production-1175.up.railway.app/v1/chat/completions");
+      assert.equal(upstreamRequest.headers.get("Authorization"), "Bearer test-key");
       providerBody = ProviderRequest.parse(await upstreamRequest.json());
 
       const chunks = [
@@ -144,7 +170,9 @@ test("valid history streams a follow-up answer without reasoning", async () => {
         { type: "text", text: "He built", state: "done" },
         { type: "text", text: " " },
         { type: "text", text: "a grocery agent.", state: "done" },
+        { type: "file", mediaType: "text/plain", url: "https://example.com/private.txt" },
       ],
+      metadata: { private: "Client metadata" },
     },
     {
       ...question,
@@ -166,6 +194,7 @@ test("valid history streams a follow-up answer without reasoning", async () => {
         },
       ],
     },
+    { id: "empty-answer", role: "assistant", parts: [] },
   ];
 
   const response = await POST(request({ messages: history }));
@@ -178,10 +207,11 @@ test("valid history streams a follow-up answer without reasoning", async () => {
   assert.match(stream, /Lucas built an AI grocery agent/);
   assert.match(stream, /"type":"finish"/);
   assert.doesNotMatch(stream, /"type":"error"/);
-  assert.equal(providerBody?.model, "apodex/apodex-1.1-mini:free");
-  assert.equal(providerBody?.models?.length, 3);
-  assert.equal(providerBody?.reasoning?.effort, "none");
-  assert.equal(providerBody?.provider.sort, "latency");
+  assert.equal(providerBody?.model, "auto");
+  assert.doesNotMatch(
+    JSON.stringify(providerBody),
+    /Checking the resume|private\.txt|Client metadata|stopped-answer/,
+  );
   assert.deepEqual(
     providerBody?.messages.map((message) => message.role),
     ["system", "user", "assistant", "user"],

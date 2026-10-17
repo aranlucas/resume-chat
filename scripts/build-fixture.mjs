@@ -48,7 +48,7 @@ try {
       env: {
         ...process.env,
         RESUME_API_URL: `http://127.0.0.1:${address.port}`,
-        OPENROUTER_API_KEY: "",
+        FREELLM_API_KEY: "",
         NEXT_TELEMETRY_DISABLED: "1",
       },
     },

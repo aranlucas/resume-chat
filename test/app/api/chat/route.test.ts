@@ -131,6 +131,7 @@ test("valid history streams a follow-up answer without reasoning", async () => {
   );
 
   const history: RequestPayload[] = [
+    { id: "stopped-answer", role: "assistant", parts: [{ type: "step-start" }] },
     { ...question, id: "first-question" },
     {
       id: "first-answer",
@@ -203,4 +204,34 @@ test("a model failure becomes a safe error in the response stream", async () => 
   assert.match(stream, /"type":"error"/);
   assert.match(stream, /temporarily unavailable/);
   assert.doesNotMatch(stream, /Private provider error/);
+});
+
+test.each([
+  { ...question, parts: [] },
+  { ...question, parts: [{ type: "text", text: "" }] },
+  { ...question, parts: [{ type: "reasoning", text: "Hidden reasoning" }] },
+  { ...question, parts: [{ type: "step-start" }] },
+])("a history without usable text returns 400 before any upstream request: %j", async (message) => {
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
+
+  const response = await POST(request({ messages: [message] }));
+
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /conversation is invalid or too long/);
+  assert.equal(upstream.mock.calls.length, 0);
+});
+
+test("oversized requests return 400 before any upstream request", async () => {
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
+
+  const response = await POST(
+    request({ messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_001) }] }] }),
+  );
+
+  assert.equal(response.status, 400);
+  assert.equal(upstream.mock.calls.length, 0);
 });

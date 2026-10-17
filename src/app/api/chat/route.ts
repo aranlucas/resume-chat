@@ -48,7 +48,9 @@ const ChatRequest = z.object({
           ),
       }),
     )
-    .min(1),
+    // A stopped answer can have no text left; providers reject empty messages.
+    .transform((messages) => messages.filter((message) => message.parts.length > 0))
+    .refine((messages) => messages.length > 0),
 });
 
 export async function POST(req: Request) {
@@ -87,8 +89,7 @@ export async function POST(req: Request) {
       provider: { sort: "latency" },
     }),
     instructions,
-    // A stopped answer can have no text left; providers reject empty messages.
-    messages: await convertToModelMessages(messages.filter((m) => m.parts.length > 0)),
+    messages: await convertToModelMessages(messages),
     abortSignal: req.signal,
     maxOutputTokens: 2_048,
   });

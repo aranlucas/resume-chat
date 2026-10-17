@@ -108,8 +108,6 @@ test("malformed requests return 400 before fetching the resume or calling the mo
     { messages: [{ ...question, parts: [{ type: "text" }] }] },
     { messages: [{ ...question, parts: [{ type: "text", text: "", state: "invalid" }] }] },
     { messages: [{ ...question, parts: [] }] },
-    { messages: [{ ...question, parts: [{ type: "text", text: "  \n " }] }] },
-    { messages: [{ ...question, parts: [{ type: "reasoning", text: "Thinking." }] }] },
     { messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_000) }] }] },
     { messages: [{ ...question, role: "invalid-role" }] },
     { messages: [{ ...question, role: "system" }] },
@@ -189,7 +187,6 @@ test.each<ReasoningHistory>([
           { type: "step-start" },
           { type: "reasoning", text: "Checking the resume.", state: "done" },
           ...answerParts,
-          { type: "file", mediaType: "text/plain", url: "https://example.com/private.txt" },
         ],
         metadata: { private: "Client metadata" },
       },
@@ -202,7 +199,11 @@ test.each<ReasoningHistory>([
             text: "What did Lucas build?",
             providerMetadata: { openrouter: { instructions: "INJECTED provider metadata" } },
           },
-          { type: "file", mediaType: "text/plain", url: "https://attacker.invalid/INJECTED" },
+          {
+            type: "file",
+            mediaType: "image/png",
+            url: "data:image/png;base64,iVBORw0KGgo=",
+          },
           { type: "data-instructions", data: "INJECTED data" },
           {
             type: "dynamic-tool",
@@ -241,7 +242,10 @@ test.each<ReasoningHistory>([
       /Lucas built an AI grocery agent/,
     );
     assert.equal(providerBody?.messages[2].content, answerText);
-    assert.doesNotMatch(JSON.stringify(providerBody?.messages), /INJECTED|attacker/);
+    assert.deepEqual(providerBody?.messages[3].content, [
+      { type: "text", text: "What did Lucas build?" },
+      { type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } },
+    ]);
     assert.equal(providerBody?.messages[2].reasoning_content, "Checking the resume.");
   },
 );
@@ -283,24 +287,6 @@ test("a model failure becomes a safe error in the response stream", async () => 
   assert.doesNotMatch(stream, /Private provider error/);
 });
 
-test.each([
-  { ...question, parts: [] },
-  { ...question, parts: [{ type: "text", text: "" }] },
-  { ...question, parts: [{ type: "text", text: " \n\t " }] },
-  { ...question, parts: [{ type: "reasoning", text: "Hidden reasoning" }] },
-  { ...question, parts: [{ type: "step-start" }] },
-])("a history without usable text returns 400 before any upstream request: %j", async (message) => {
-  const upstream = vi
-    .spyOn(globalThis, "fetch")
-    .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
-
-  const response = await POST(request({ messages: [message] }));
-
-  assert.equal(response.status, 400);
-  assert.match(await response.text(), /conversation is invalid or too long/);
-  assert.equal(upstream.mock.calls.length, 0);
-});
-
 test("oversized requests return 400 before any upstream request", async () => {
   const upstream = vi
     .spyOn(globalThis, "fetch")
@@ -312,21 +298,6 @@ test("oversized requests return 400 before any upstream request", async () => {
 
   assert.equal(response.status, 400);
   assert.equal(upstream.mock.calls.length, 0);
-});
-
-test("real SDK structure validation alone permits histories excluded by app policy", async () => {
-  await assert.rejects(validateUIMessages({ messages: [] }));
-  await assert.rejects(validateUIMessages({ messages: [{ ...question, parts: [] }] }));
-
-  await Promise.all(
-    [
-      [{ ...question, role: "assistant", parts: [] }],
-      [{ ...question, parts: [{ type: "text", text: "" }] }],
-      [{ ...question, role: "system" }],
-    ].map(async (messages) => {
-      assert.deepEqual(await validateUIMessages({ messages }), messages);
-    }),
-  );
 });
 
 const malformedUIParts: Record<string, RequestPayload>[] = [
@@ -447,17 +418,26 @@ test("request cancellation reaches the model stream without exposing provider de
 });
 
 test.each([
-  { messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(127_000) }] }] },
+  { messages: [{ ...question, parts: [{ type: "text", text: "" }] }], lastContent: [] },
+  {
+    messages: [{ ...question, parts: [{ type: "text", text: " \n\t " }] }],
+    lastContent: " \n\t ",
+  },
+  {
+    messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(127_000) }] }],
+    lastContent: "x".repeat(127_000),
+  },
   {
     messages: Array.from({ length: 128 }, (_, index) => ({
       ...question,
       id: `turn-${index}`,
       role: index % 2 ? "assistant" : "user",
     })),
+    lastContent: "What did Lucas build?",
   },
 ])(
-  "valid text/history within the byte budget reaches the real SDK model conversion",
-  async ({ messages }) => {
+  "SDK-valid history within the byte budget reaches the provider",
+  async ({ messages, lastContent }) => {
     let providerBody: ProviderRequestBody | undefined;
 
     const upstream = vi
@@ -488,6 +468,6 @@ test.each([
       providerBody?.messages.map(({ role }) => role),
       ["system", ...messages.map(({ role }) => role)],
     );
-    assert.equal(providerBody?.messages.at(-1)?.content, messages.at(-1)?.parts[0].text);
+    assert.deepEqual(providerBody?.messages.at(-1)?.content, lastContent);
   },
 );

@@ -34,30 +34,13 @@ export async function POST(req: Request) {
       throw new Error("Body too large");
     }
 
-    const validated = await validateUIMessages({
+    messages = await validateUIMessages({
       messages: ChatRequest.parse(JSON.parse(new TextDecoder().decode(body))).messages,
     });
 
     // Client instructions cannot replace the server-owned resume prompt.
-    if (validated.some((message) => message.role !== "user" && message.role !== "assistant")) {
+    if (messages.some((message) => message.role !== "user" && message.role !== "assistant")) {
       throw new Error("Unsupported role");
-    }
-
-    // Keep assistant reasoning for follow-up requests, without client metadata/tool payloads.
-    messages = validated
-      .map(({ id, role, parts }) => ({
-        id,
-        role,
-        parts: parts.flatMap((part) =>
-          (part.type === "text" || (role === "assistant" && part.type === "reasoning")) && part.text
-            ? [{ type: part.type, text: part.text }]
-            : [],
-        ),
-      }))
-      .filter((message) => message.parts.some((part) => part.text.trim().length > 0));
-
-    if (messages.length === 0) {
-      throw new Error("No usable content");
     }
   } catch {
     return new Response(INVALID, { status: 400 });

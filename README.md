@@ -93,9 +93,10 @@ with the model key cleared. Its build output contains a fictional profile and
 is only for verification; use `pnpm build` for a production build.
 
 The public chat endpoint accepts a JSON body of up to 128,000 bytes with
-user and assistant messages. Text and assistant reasoning reach the model; other
-roles and parts are dropped or rejected, and invalid requests return a safe 400 before
-loading the resume or calling a model. Resume loading has a 10-second deadline,
+user and assistant messages. The AI SDK validates the message structure and converts
+the validated history directly for the model, including assistant reasoning.
+Invalid requests return a safe 400 before loading the resume or calling a model.
+Resume loading has a 10-second deadline,
 answers are capped at 2,048 tokens, and the function stops after 60 seconds.
 Failures before streaming return a safe 503; failures after streaming starts
 use the same message in the SDK error stream.

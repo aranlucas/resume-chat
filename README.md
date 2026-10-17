@@ -9,7 +9,7 @@
 
 Resume Chat turns Lucas Arango's public resume into a quick conversation. A
 recruiter or collaborator can ask a plain-language question and watch an
-OpenRouter answer stream back with the published resume in context—no vector
+FreeLLMAPI answer stream back with the published resume in context—no vector
 database or embedding pipeline required.
 
 > **Try the useful question:** “What did Lucas build with Go?” Ask it, get a
@@ -23,10 +23,9 @@ checked against the source resume before they are used for a hiring decision.
 
 ## Setup
 
-1. Create a dedicated API key at https://openrouter.ai/keys. The default
-   chain of free models (see `src/app/api/chat/route.ts`) answers with
-   reasoning turned off for speed; set a $0 credit limit
-   on the key to prevent paid usage. Free models have provider rate limits.
+1. Sign in at [FreeLLMAPI on Railway](https://freellmapi-production-1175.up.railway.app/keys)
+   and copy the unified API key. The chat uses model `auto`, letting FreeLLMAPI
+   handle model selection and fallback routing.
 2. Copy the env template and fill it in:
 
 ```bash
@@ -44,10 +43,10 @@ Open [https://resume-chat.localhost](https://resume-chat.localhost). `pnpm dev` 
 
 ## Configuration
 
-| Variable             | Required | Default                                    | Description                                                                                                                              |
-| -------------------- | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENROUTER_API_KEY` | Yes      | —                                          | OpenRouter API key                                                                                                                       |
-| `RESUME_API_URL`     | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server                                                                                         |
+| Variable          | Required | Default                                    | Description                                      |
+| ----------------- | -------- | ------------------------------------------ | ------------------------------------------------ |
+| `FREELLM_API_KEY` | Yes      | —                                          | FreeLLMAPI unified API key                       |
+| `RESUME_API_URL`  | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
 
 ## Vercel deployment
 
@@ -55,15 +54,17 @@ The existing project is `aranlucas-projects/resume-chat`, served at
 [hire-lucas.vercel.app](https://hire-lucas.vercel.app/).
 
 1. Link this checkout: `vercel link --project resume-chat --scope aranlucas-projects`.
-2. Set `OPENROUTER_API_KEY` as a server-only secret for Production, Preview,
+2. Set `FREELLM_API_KEY` as a server-only secret for Production, Preview,
    and Development in the project's environment settings.
 3. Deploy with `vercel deploy --prod`. Environment changes require a new
    deployment to take effect.
 4. Ask a question on the live site and confirm a complete answer streams.
 
 For local development, pull the Development environment with
-`vercel env pull .env.local`. Keep `.env.local` untracked. The current app
-does not require OpenAI or Pinecone environment variables.
+`vercel env pull .env.local`. Keep `.env.local` untracked. The chat sends requests to
+`https://freellmapi-production-1175.up.railway.app/v1/chat/completions` with model
+`auto`. The route passes `FREELLM_API_KEY` to the provider without an environment
+preflight check; authentication errors use the normal streaming error response.
 
 ## Resume source
 
@@ -107,24 +108,25 @@ flowchart LR
   Browser[Resume Chat UI] --> Route[src/app/api/chat/route.ts]
   Route --> Resume[src/lib/resume.ts]
   Resume --> API[Public resume API]
-  Route --> OpenRouter[OpenRouter model]
-  OpenRouter --> Route
+  Route --> FreeLLMAPI[FreeLLMAPI on Railway · auto]
+  FreeLLMAPI --> Route
   Route --> Browser
 ```
 
 Resume text and JSON are cached for 30 days with the `resume` cache tag. The
 resume repository can call `POST /api/revalidate` after publishing to refresh
 the cached content. The chat route validates supported conversation content with
-Zod and returns 400 for malformed or oversized requests. A missing server key or
-unavailable resume returns 503; model errors during streaming produce a retryable
-error in the chat.
+the AI SDK's `validateUIMessages`, then keeps only user and assistant text. It
+returns 400 for malformed, oversized, or textless requests. An unavailable resume
+returns 503; provider errors, including authentication failures, produce a
+retryable error in the chat stream.
 
 ## Source map
 
 - `src/app/page.tsx` and `src/app/profile-chat.tsx` compose the landing page.
 - `src/components/conversation.tsx` and `message-response.tsx` render the
   streaming conversation.
-- `src/app/api/chat/route.ts` validates the conversation, picks the free models, and streams the answer.
+- `src/app/api/chat/route.ts` validates the conversation, selects FreeLLMAPI model `auto`, and streams the answer.
 - `src/lib/resume.ts` fetches and validates the public resume documents.
 - `src/lib/profile.ts` provides the profile and experience timeline ready for the page to render.
 - `src/app/api/revalidate/route.ts` accepts the cache refresh webhook.

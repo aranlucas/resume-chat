@@ -33,7 +33,7 @@ A personal portfolio that makes Lucas's public resume conversational. Visitors c
 - The assistant describes Lucas in third person. Profile and introductory copy may speak in Lucas's own voice.
 - Use public profile links for contact. The assistant must not disclose an email address or phone number.
 - No account or saved conversation requirement. The existing app has no conversation database; conversations do not need to persist between visits.
-- The app uses Next.js, React, and the AI SDK, with server-side OpenRouter model access. Provider availability and rate limits can affect answers.
+- The app uses Next.js, React, and the AI SDK, with server-side access to FreeLLMAPI on Railway using model `auto`. Provider availability and rate limits can affect answers.
 - Profile data and assistant context come from the public resume service. Resume updates belong in the source resume repository, rather than being invented in this presentation layer.
 
 ## Brand Commitments

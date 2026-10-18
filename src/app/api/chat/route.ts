@@ -8,40 +8,22 @@ import {
   validateUIMessages,
   type UIMessage,
 } from "ai";
-import { z } from "zod";
 
 // Free providers can take longer to start streaming during busy periods.
 export const maxDuration = 60;
 
 const UNAVAILABLE = "The assistant is temporarily unavailable. Please try again in a moment.";
 
-const INVALID =
-  "The conversation is invalid or too long. Please shorten your question or start a new conversation.";
-
-// The whole history is resent with each question, so bound its UTF-8 byte size.
-const MAX_BODY_BYTES = 128_000;
-
-// The SDK owns message/part structure; this schema only reads the HTTP envelope.
-const ChatRequest = z.object({ messages: z.unknown() });
+const INVALID = "The conversation is invalid. Please start a new conversation.";
 
 export async function POST(req: Request) {
   let messages: UIMessage[];
 
   try {
-    const body = await req.arrayBuffer();
-
-    if (body.byteLength > MAX_BODY_BYTES) {
-      throw new Error("Body too large");
-    }
-
     messages = await validateUIMessages({
-      messages: ChatRequest.parse(JSON.parse(new TextDecoder().decode(body))).messages,
+      // oxlint-disable-next-line typescript/no-unsafe-member-access -- The SDK validates this untrusted input.
+      messages: (await req.json()).messages,
     });
-
-    // Client instructions cannot replace the server-owned resume prompt.
-    if (messages.some((message) => message.role !== "user" && message.role !== "assistant")) {
-      throw new Error("Unsupported role");
-    }
   } catch {
     return new Response(INVALID, { status: 400 });
   }

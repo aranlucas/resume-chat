@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 import { afterEach, beforeEach, test, vi } from "vitest";
 import { POST } from "@/app/api/chat/route";
-import { validateUIMessages } from "ai";
 
 const originalKey = process.env.FREELLM_API_KEY;
 
@@ -108,16 +107,14 @@ test("malformed requests return 400 before fetching the resume or calling the mo
     { messages: [{ ...question, parts: [{ type: "text" }] }] },
     { messages: [{ ...question, parts: [{ type: "text", text: "", state: "invalid" }] }] },
     { messages: [{ ...question, parts: [] }] },
-    { messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_000) }] }] },
     { messages: [{ ...question, role: "invalid-role" }] },
-    { messages: [{ ...question, role: "system" }] },
   ];
 
   await Promise.all(
     invalidBodies.map((body) =>
       POST(request(body)).then(async (response) => {
         assert.equal(response.status, 400, JSON.stringify(body));
-        assert.match(await response.text(), /conversation is invalid or too long/);
+        assert.match(await response.text(), /conversation is invalid/);
 
         return response;
       }),
@@ -287,17 +284,21 @@ test("a model failure becomes a safe error in the response stream", async () => 
   assert.doesNotMatch(stream, /Private provider error/);
 });
 
-test("oversized requests return 400 before any upstream request", async () => {
+test("the SDK handles system-role histories through the safe error stream", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+
   const upstream = vi
     .spyOn(globalThis, "fetch")
-    .mockImplementation(() => Promise.reject(new Error("Unexpected upstream request")));
+    .mockResolvedValue(new Response("Public fixture resume."));
 
-  const response = await POST(
-    request({ messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_001) }] }] }),
-  );
+  const response = await POST(request({ messages: [{ ...question, role: "system" }, question] }));
+  const stream = await response.text();
 
-  assert.equal(response.status, 400);
-  assert.equal(upstream.mock.calls.length, 0);
+  assert.equal(response.status, 200);
+  assert.match(stream, /"type":"error"/);
+  assert.match(stream, /temporarily unavailable/);
+  assert.doesNotMatch(stream, /System messages are not allowed/);
+  assert.equal(upstream.mock.calls.length, 1);
 });
 
 const malformedUIParts: Record<string, RequestPayload>[] = [
@@ -319,42 +320,10 @@ test.each(malformedUIParts)(
     );
 
     assert.equal(response.status, 400);
-    assert.match(await response.text(), /conversation is invalid or too long/);
+    assert.match(await response.text(), /conversation is invalid/);
     assert.equal(upstream.mock.calls.length, 0);
   },
 );
-
-test("UTF-8 byte limit rejects a structurally valid history below the character limit", async () => {
-  const upstream = vi
-    .spyOn(globalThis, "fetch")
-    .mockRejectedValue(new Error("Unexpected upstream"));
-
-  const body = {
-    messages: [{ ...question, parts: [{ type: "text", text: "💬".repeat(33_000) }] }],
-  };
-
-  assert.ok(JSON.stringify(body).length < 128_000);
-  assert.ok(new TextEncoder().encode(JSON.stringify(body)).byteLength > 128_000);
-  const response = await POST(request(body));
-  assert.equal(response.status, 400);
-  assert.equal(upstream.mock.calls.length, 0);
-});
-
-test("a structurally valid oversized history is rejected before upstream access", async () => {
-  const upstream = vi
-    .spyOn(globalThis, "fetch")
-    .mockRejectedValue(new Error("Unexpected upstream"));
-
-  const messages = Array.from({ length: 2_000 }, (_, index) => ({
-    ...question,
-    id: `message-${index}`,
-  }));
-
-  await validateUIMessages({ messages });
-  const response = await POST(request({ messages }));
-  assert.equal(response.status, 400);
-  assert.equal(upstream.mock.calls.length, 0);
-});
 
 test("request cancellation aborts resume loading before model access", async () => {
   const controller = new AbortController();
@@ -424,11 +393,15 @@ test.each([
     lastContent: " \n\t ",
   },
   {
-    messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(127_000) }] }],
-    lastContent: "x".repeat(127_000),
+    messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_001) }] }],
+    lastContent: "x".repeat(128_001),
   },
   {
-    messages: Array.from({ length: 128 }, (_, index) => ({
+    messages: [{ ...question, parts: [{ type: "text", text: "💬".repeat(33_000) }] }],
+    lastContent: "💬".repeat(33_000),
+  },
+  {
+    messages: Array.from({ length: 2_000 }, (_, index) => ({
       ...question,
       id: `turn-${index}`,
       role: index % 2 ? "assistant" : "user",
@@ -436,7 +409,7 @@ test.each([
     lastContent: "What did Lucas build?",
   },
 ])(
-  "SDK-valid history within the byte budget reaches the provider",
+  "SDK-valid history reaches the provider without app-level restrictions",
   async ({ messages, lastContent }) => {
     let providerBody: ProviderRequestBody | undefined;
 
@@ -459,7 +432,6 @@ test.each([
         );
       });
 
-    assert.ok(new TextEncoder().encode(JSON.stringify({ messages })).byteLength <= 128_000);
     const response = await POST(request({ messages }));
     assert.equal(response.status, 200);
     assert.match(await response.text(), /Fixture answer/);

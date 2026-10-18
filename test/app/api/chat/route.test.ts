@@ -31,16 +31,25 @@ type RequestPayload = z.infer<typeof JsonPayload>;
 
 const ProviderRequest = z.object({
   model: z.string(),
-  messages: z.array(z.object({ role: z.string(), content: z.json() })),
+  messages: z.array(
+    z.object({ role: z.string(), content: z.json(), reasoning_content: z.string().optional() }),
+  ),
 });
 
 type ProviderRequestBody = z.infer<typeof ProviderRequest>;
 
-function request(body: RequestPayload) {
+type ReasoningHistory = {
+  label: string;
+  answerParts: RequestPayload[];
+  answerText: string;
+};
+
+function request(body: RequestPayload, signal?: AbortSignal) {
   return new Request("http://localhost/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
 }
 
@@ -98,18 +107,14 @@ test("malformed requests return 400 before fetching the resume or calling the mo
     { messages: [{ ...question, parts: [{ type: "text" }] }] },
     { messages: [{ ...question, parts: [{ type: "text", text: "", state: "invalid" }] }] },
     { messages: [{ ...question, parts: [] }] },
-    { messages: [{ ...question, parts: [{ type: "text", text: "  \n " }] }] },
-    { messages: [{ ...question, parts: [{ type: "reasoning", text: "Thinking." }] }] },
-    { messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_000) }] }] },
     { messages: [{ ...question, role: "invalid-role" }] },
-    { messages: [{ ...question, role: "system" }] },
   ];
 
   await Promise.all(
     invalidBodies.map((body) =>
       POST(request(body)).then(async (response) => {
         assert.equal(response.status, 400, JSON.stringify(body));
-        assert.match(await response.text(), /conversation is invalid or too long/);
+        assert.match(await response.text(), /conversation is invalid/);
 
         return response;
       }),
@@ -124,79 +129,123 @@ test("malformed requests return 400 before fetching the resume or calling the mo
   assert.equal(upstream.mock.calls.length, 0);
 });
 
-test("valid history streams a follow-up answer without reasoning", async () => {
-  let providerBody: ProviderRequestBody | undefined;
-  vi.spyOn(globalThis, "fetch").mockImplementation(
-    async (input: RequestInfo | URL, init?: RequestInit) => {
-      const upstreamRequest = new Request(input, init);
-      const { url } = upstreamRequest;
+test.each<ReasoningHistory>([
+  {
+    label: "with answer text",
+    answerParts: [
+      { type: "text", text: "He built", state: "done" },
+      { type: "text", text: " " },
+      { type: "text", text: "a grocery agent.", state: "done" },
+    ],
+    answerText: "He built a grocery agent.",
+  },
+  { label: "with reasoning only", answerParts: [], answerText: "" },
+])(
+  "assistant reasoning round-trips through the API $label",
+  async ({ answerParts, answerText }) => {
+    let providerBody: ProviderRequestBody | undefined;
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const upstreamRequest = new Request(input, init);
+        const { url } = upstreamRequest;
 
-      if (url.endsWith("/resume.md")) {
-        return new Response("Lucas built an AI grocery agent.");
-      }
+        if (url.endsWith("/resume.md")) {
+          return new Response("Lucas built an AI grocery agent.");
+        }
 
-      assert.equal(url, "https://freellmapi-production-1175.up.railway.app/v1/chat/completions");
-      assert.equal(upstreamRequest.headers.get("Authorization"), "Bearer test-key");
-      providerBody = ProviderRequest.parse(await upstreamRequest.json());
+        assert.equal(url, "https://freellmapi-production-1175.up.railway.app/v1/chat/completions");
+        assert.equal(upstreamRequest.headers.get("Authorization"), "Bearer test-key");
+        providerBody = ProviderRequest.parse(await upstreamRequest.json());
 
-      const chunks = [
-        { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
-        { choices: [{ delta: { content: "Lucas built an AI grocery agent." } }] },
-        {
-          choices: [{ delta: {}, finish_reason: "stop" }],
-          usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
-        },
-      ];
+        const chunks = [
+          { choices: [{ delta: { role: "assistant", reasoning: "Checking the resume." } }] },
+          { choices: [{ delta: { content: "Lucas built an AI grocery agent." } }] },
+          {
+            choices: [{ delta: {}, finish_reason: "stop" }],
+            usage: { prompt_tokens: 10, completion_tokens: 8, total_tokens: 18 },
+          },
+        ];
 
-      const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
+        const stream = chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("");
 
-      return new Response(`${stream}data: [DONE]\n\n`, {
-        headers: { "Content-Type": "text/event-stream" },
-      });
-    },
-  );
+        return new Response(`${stream}data: [DONE]\n\n`, {
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      },
+    );
 
-  const history: RequestPayload[] = [
-    { ...question, id: "first-question" },
-    {
-      id: "first-answer",
-      role: "assistant",
-      parts: [
-        { type: "step-start" },
-        { type: "reasoning", text: "Checking the resume.", state: "done" },
-        { type: "text", text: "He built a grocery agent.", state: "done" },
-        { type: "file", mediaType: "text/plain", url: "https://example.com/private.txt" },
-      ],
-      metadata: { private: "Client metadata" },
-    },
-    { id: "stopped-answer", role: "assistant", parts: [] },
-    question,
-  ];
+    const history: RequestPayload[] = [
+      { id: "stopped-answer", role: "assistant", parts: [{ type: "step-start" }] },
+      { ...question, id: "first-question" },
+      {
+        id: "first-answer",
+        role: "assistant",
+        parts: [
+          { type: "step-start" },
+          { type: "reasoning", text: "Checking the resume.", state: "done" },
+          ...answerParts,
+        ],
+        metadata: { private: "Client metadata" },
+      },
+      {
+        ...question,
+        metadata: { instructions: "INJECTED metadata" },
+        parts: [
+          {
+            type: "text",
+            text: "What did Lucas build?",
+            providerMetadata: { openrouter: { instructions: "INJECTED provider metadata" } },
+          },
+          {
+            type: "file",
+            mediaType: "image/png",
+            url: "data:image/png;base64,iVBORw0KGgo=",
+          },
+          { type: "data-instructions", data: "INJECTED data" },
+          {
+            type: "dynamic-tool",
+            toolName: "INJECTED",
+            toolCallId: "untrusted",
+            state: "input-available",
+            input: { instructions: "INJECTED tool" },
+          },
+        ],
+      },
+      { id: "empty-answer", role: "assistant", parts: [] },
+    ];
 
-  const response = await POST(request({ messages: history }));
-  const stream = await response.text();
+    const response = await POST(request({ messages: history }));
+    const stream = await response.text();
 
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("Content-Type") ?? "", /text\/event-stream/);
-  assert.doesNotMatch(stream, /"type":"reasoning/);
-  assert.match(stream, /"type":"text-delta"/);
-  assert.match(stream, /Lucas built an AI grocery agent/);
-  assert.match(stream, /"type":"finish"/);
-  assert.doesNotMatch(stream, /"type":"error"/);
-  assert.equal(providerBody?.model, "auto");
-  assert.doesNotMatch(
-    JSON.stringify(providerBody),
-    /Checking the resume|private\.txt|Client metadata|stopped-answer/,
-  );
-  assert.deepEqual(
-    providerBody?.messages.map((message) => message.role),
-    ["system", "user", "assistant", "user"],
-  );
-  assert.match(
-    JSON.stringify(providerBody?.messages[0].content),
-    /Lucas built an AI grocery agent/,
-  );
-});
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("Content-Type") ?? "", /text\/event-stream/);
+    assert.match(stream, /"type":"reasoning-delta"/);
+    assert.match(stream, /Checking the resume\./);
+    assert.match(stream, /"type":"text-delta"/);
+    assert.match(stream, /Lucas built an AI grocery agent/);
+    assert.match(stream, /"type":"finish"/);
+    assert.doesNotMatch(stream, /"type":"error"/);
+    assert.equal(providerBody?.model, "auto");
+    assert.doesNotMatch(
+      JSON.stringify(providerBody),
+      /private\.txt|Client metadata|stopped-answer/,
+    );
+    assert.deepEqual(
+      providerBody?.messages.map((message) => message.role),
+      ["system", "user", "assistant", "user"],
+    );
+    assert.match(
+      JSON.stringify(providerBody?.messages[0].content),
+      /Lucas built an AI grocery agent/,
+    );
+    assert.equal(providerBody?.messages[2].content, answerText);
+    assert.deepEqual(providerBody?.messages[3].content, [
+      { type: "text", text: "What did Lucas build?" },
+      { type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } },
+    ]);
+    assert.equal(providerBody?.messages[2].reasoning_content, "Checking the resume.");
+  },
+);
 
 test("a resume outage returns a useful 503 response", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -234,3 +283,163 @@ test("a model failure becomes a safe error in the response stream", async () => 
   assert.match(stream, /temporarily unavailable/);
   assert.doesNotMatch(stream, /Private provider error/);
 });
+
+test("the SDK handles system-role histories through the safe error stream", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response("Public fixture resume."));
+
+  const response = await POST(request({ messages: [{ ...question, role: "system" }, question] }));
+  const stream = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(stream, /"type":"error"/);
+  assert.match(stream, /temporarily unavailable/);
+  assert.doesNotMatch(stream, /System messages are not allowed/);
+  assert.equal(upstream.mock.calls.length, 1);
+});
+
+const malformedUIParts: Record<string, RequestPayload>[] = [
+  { type: "text", text: "Question", state: "invalid-state" },
+  { type: "text", text: "Question", providerMetadata: "invalid-metadata" },
+  { type: "file", mediaType: "text/plain" },
+  { type: "unknown-part", text: "Unsupported input" },
+];
+
+test.each(malformedUIParts)(
+  "SDK rejects malformed UI parts before any upstream access: %j",
+  async (part) => {
+    const upstream = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("Unexpected upstream"));
+
+    const response = await POST(
+      request({ messages: [{ ...question, parts: [...question.parts, part] }] }),
+    );
+
+    assert.equal(response.status, 400);
+    assert.match(await response.text(), /conversation is invalid/);
+    assert.equal(upstream.mock.calls.length, 0);
+  },
+);
+
+test("request cancellation aborts resume loading before model access", async () => {
+  const controller = new AbortController();
+  const started = Promise.withResolvers<AbortSignal>();
+
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+      assert.ok(upstreamRequest.url.endsWith("/resume.md"));
+      started.resolve(upstreamRequest.signal);
+
+      return new Promise<Response>((_resolve, reject) => {
+        upstreamRequest.signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Private abort detail", "AbortError")),
+          { once: true },
+        );
+      });
+    });
+
+  const pending = POST(request({ messages: [question] }, controller.signal));
+  const signal = await started.promise;
+  controller.abort();
+  const response = await pending;
+  assert.equal(signal.aborted, true);
+  assert.equal(response.status, 503);
+  assert.match(await response.text(), /temporarily unavailable/);
+  assert.equal(upstream.mock.calls.length, 1);
+});
+
+test("request cancellation reaches the model stream without exposing provider details", async () => {
+  const controller = new AbortController();
+  const started = Promise.withResolvers<AbortSignal>();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    (input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+
+      if (upstreamRequest.url.endsWith("/resume.md")) {
+        return Promise.resolve(new Response("Public fixture resume."));
+      }
+
+      started.resolve(upstreamRequest.signal);
+
+      return new Promise<Response>((_resolve, reject) => {
+        upstreamRequest.signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Private model abort detail", "AbortError")),
+          { once: true },
+        );
+      });
+    },
+  );
+  const response = await POST(request({ messages: [question] }, controller.signal));
+  const pending = response.text();
+  const signal = await started.promise;
+  controller.abort();
+  assert.equal(signal.aborted, true);
+  assert.doesNotMatch(await pending, /Private model abort detail/);
+});
+
+test.each([
+  { messages: [{ ...question, parts: [{ type: "text", text: "" }] }], lastContent: [] },
+  {
+    messages: [{ ...question, parts: [{ type: "text", text: " \n\t " }] }],
+    lastContent: " \n\t ",
+  },
+  {
+    messages: [{ ...question, parts: [{ type: "text", text: "x".repeat(128_001) }] }],
+    lastContent: "x".repeat(128_001),
+  },
+  {
+    messages: [{ ...question, parts: [{ type: "text", text: "💬".repeat(33_000) }] }],
+    lastContent: "💬".repeat(33_000),
+  },
+  {
+    messages: Array.from({ length: 2_000 }, (_, index) => ({
+      ...question,
+      id: `turn-${index}`,
+      role: index % 2 ? "assistant" : "user",
+    })),
+    lastContent: "What did Lucas build?",
+  },
+])(
+  "SDK-valid history reaches the provider without app-level restrictions",
+  async ({ messages, lastContent }) => {
+    let providerBody: ProviderRequestBody | undefined;
+
+    const upstream = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const upstreamRequest = new Request(input, init);
+
+        if (upstreamRequest.url.endsWith("/resume.md")) {
+          return new Response("Public fixture resume.");
+        }
+
+        providerBody = ProviderRequest.parse(await upstreamRequest.json());
+
+        return new Response(
+          'data: {"choices":[{"delta":{"role":"assistant","content":"Fixture answer."}}]}\n\n' +
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n' +
+            "data: [DONE]\n\n",
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      });
+
+    const response = await POST(request({ messages }));
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /Fixture answer/);
+    assert.equal(upstream.mock.calls.length, 2);
+    assert.deepEqual(
+      providerBody?.messages.map(({ role }) => role),
+      ["system", ...messages.map(({ role }) => role)],
+    );
+    assert.deepEqual(providerBody?.messages.at(-1)?.content, lastContent);
+  },
+);

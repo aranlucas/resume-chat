@@ -92,10 +92,11 @@ provider failures with a mocked model and synthetic resume data.
 with the model key cleared. Its build output contains a fictional profile and
 is only for verification; use `pnpm build` for a production build.
 
-The public chat endpoint accepts a JSON body of up to 128,000 characters with
-user and assistant messages. Only their text reaches the model; other roles and
-parts are dropped or rejected, and invalid requests return a safe 400 before
-loading the resume or calling a model. Resume loading has a 10-second deadline,
+The public chat endpoint reads the JSON body's `messages` field. The AI SDK
+validates the message structure and converts the validated history directly for
+the model, including assistant reasoning.
+Invalid requests return a safe 400 before loading the resume or calling a model.
+Resume loading has a 10-second deadline,
 answers are capped at 2,048 tokens, and the function stops after 60 seconds.
 Failures before streaming return a safe 503; failures after streaming starts
 use the same message in the SDK error stream.
@@ -115,9 +116,9 @@ flowchart LR
 
 Resume text and JSON are cached for 30 days with the `resume` cache tag. The
 resume repository can call `POST /api/revalidate` after publishing to refresh
-the cached content. The chat route validates supported conversation content with
-the AI SDK's `validateUIMessages`, then keeps only user and assistant text. It
-returns 400 for malformed, oversized, or textless requests. An unavailable resume
+the cached content. The chat route validates conversation content with the AI
+SDK's `validateUIMessages` and passes it directly to `convertToModelMessages`.
+Malformed JSON and SDK-invalid histories return 400. An unavailable resume
 returns 503; provider errors, including authentication failures, produce a
 retryable error in the chat stream.
 

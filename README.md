@@ -2,24 +2,15 @@
   <img src="src/app/apple-icon.png" alt="Resume Chat icon" width="96" />
 </p>
 
-# Resume Chat · Ask the resume, skip the PDF hunt
+# Resume Chat
 
 [![CI](https://github.com/aranlucas/resume-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/aranlucas/resume-chat/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/aranlucas/resume-chat)](LICENSE)
 
-Resume Chat turns Lucas Arango's public resume into a quick conversation. A
-recruiter or collaborator can ask a plain-language question and watch an
-FreeLLMAPI answer stream back with the published resume in context—no vector
-database or embedding pipeline required.
-
-> **Try the useful question:** “What did Lucas build with Go?” Ask it, get a
-> grounded answer, then open the source resume when the detail matters.
-
-Try the deployed app at [hire-lucas.vercel.app](https://hire-lucas.vercel.app/).
-
-The public resume service is the source of truth. This application is a
-presentation and question-answering layer, so generated answers should be
-checked against the source resume before they are used for a hiring decision.
+Ask about Lucas Arango's public resume at
+[hire-lucas.vercel.app](https://hire-lucas.vercel.app/). Answers use the published
+resume directly as model context; check consequential claims against the source
+resume. See [product constraints](PRODUCT.md) and the [proposed roadmap](ROADMAP.md).
 
 ## Setup
 
@@ -39,14 +30,17 @@ pnpm install
 pnpm dev
 ```
 
-Open [https://resume-chat.localhost](https://resume-chat.localhost). `pnpm dev` runs through [Portless](https://github.com/vercel-labs/portless) (a dev dependency); its first run may ask for `sudo` to bind port 443 and trust a local certificate.
+Open the URL printed by [Portless](https://github.com/vercel-labs/portless):
+normally `https://resume-chat.localhost`, with a branch subdomain in linked
+worktrees. Its first run may ask for `sudo` to bind port 443 and trust a local
+certificate.
 
 ## Configuration
 
-| Variable          | Required | Default                                    | Description                                      |
-| ----------------- | -------- | ------------------------------------------ | ------------------------------------------------ |
-| `FREELLM_API_KEY` | Yes      | —                                          | FreeLLMAPI unified API key                       |
-| `RESUME_API_URL`  | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local `_site` server |
+| Variable          | Required | Default                                    | Description                              |
+| ----------------- | -------- | ------------------------------------------ | ---------------------------------------- |
+| `FREELLM_API_KEY` | Yes      | —                                          | FreeLLMAPI unified API key               |
+| `RESUME_API_URL`  | No       | `https://resume-api.aranlucas.workers.dev` | Resume API base URL, e.g. a local server |
 
 ## Vercel deployment
 
@@ -61,20 +55,24 @@ The existing project is `aranlucas-projects/resume-chat`, served at
 4. Ask a question on the live site and confirm a complete answer streams.
 
 For local development, pull the Development environment with
-`vercel env pull .env.local`. Keep `.env.local` untracked. The chat sends requests to
-`https://freellmapi-production-1175.up.railway.app/v1/chat/completions` with model
-`auto`. The route passes `FREELLM_API_KEY` to the provider without an environment
-preflight check; authentication errors use the normal streaming error response.
+`vercel env pull .env.local`. Keep `.env.local` untracked. A missing or invalid
+`FREELLM_API_KEY` produces the normal provider error stream; there is no local
+key preflight check.
 
 ## Resume source
 
 The resume lives in [aranlucas/resume](https://github.com/aranlucas/resume) as a
 [JSON Resume](https://jsonresume.org/schema), published without private info to
 [resume-api.aranlucas.workers.dev](https://resume-api.aranlucas.workers.dev/).
-`src/lib/resume.ts` fetches `resume.md` (the assistant's system prompt) and
-`resume.json` (the page's experience timeline) with a 30-day cache tagged
-`resume`. The resume repo's deploy calls `POST /api/revalidate` to refresh both right away. To update
-the resume, edit it there.
+Edit resume facts in that repository. This app loads `resume.md` for assistant
+context and the `/resume` page, and `resume.json` for the profile and timeline.
+Both are cached for 30 days under the `resume` tag.
+
+The resume deploy calls `POST /api/revalidate`, which returns
+`{"revalidated":true}` and marks both documents stale. Refresh happens in the
+background on a subsequent visit; visitors may receive the cached version while
+it runs. This webhook is deliberately unauthenticated because the resume is
+public and the operation only marks cached data stale.
 
 ## Verify
 
@@ -92,50 +90,15 @@ provider failures with a mocked model and synthetic resume data.
 with the model key cleared. Its build output contains a fictional profile and
 is only for verification; use `pnpm build` for a production build.
 
-The public chat endpoint reads the JSON body's `messages` field. The AI SDK
-validates the message structure and converts the validated history directly for
-the model, including assistant reasoning.
-Invalid requests return a safe 400 before loading the resume or calling a model.
-Resume loading has a 10-second deadline,
-answers are capped at 2,048 tokens, and the function stops after 60 seconds.
-Failures before streaming return a safe 503; failures after streaming starts
-use the same message in the SDK error stream.
-These per-request limits do not replace deployment-level rate limiting.
+## Chat API and operating limits
 
-## How the request flows
+`POST /api/chat` accepts a JSON body with an AI SDK UI-message `messages` array
+and returns the SDK's UI-message event stream. Validated history is converted
+directly for the model, including assistant reasoning. Malformed JSON or invalid
+message structures return 400 before upstream access. Resume-loading failures
+return 503; provider failures produce a generic, retryable error in the stream.
 
-```mermaid
-flowchart LR
-  Browser[Resume Chat UI] --> Route[src/app/api/chat/route.ts]
-  Route --> Resume[src/lib/resume.ts]
-  Resume --> API[Public resume API]
-  Route --> FreeLLMAPI[FreeLLMAPI on Railway · auto]
-  FreeLLMAPI --> Route
-  Route --> Browser
-```
-
-Resume text and JSON are cached for 30 days with the `resume` cache tag. The
-resume repository can call `POST /api/revalidate` after publishing to refresh
-the cached content. The chat route validates conversation content with the AI
-SDK's `validateUIMessages` and passes it directly to `convertToModelMessages`.
-Malformed JSON and SDK-invalid histories return 400. An unavailable resume
-returns 503; provider errors, including authentication failures, produce a
-retryable error in the chat stream.
-
-## Source map
-
-- `src/app/page.tsx` and `src/app/profile-chat.tsx` compose the landing page.
-- `src/components/conversation.tsx` and `message-response.tsx` render the
-  streaming conversation.
-- `src/app/api/chat/route.ts` validates the conversation, selects FreeLLMAPI model `auto`, and streams the answer.
-- `src/lib/resume.ts` fetches and validates the public resume documents.
-- `src/lib/profile.ts` provides the profile and experience timeline ready for the page to render.
-- `src/app/api/revalidate/route.ts` accepts the cache refresh webhook.
-- `.env.template` lists the supported runtime settings.
-
-## Status and boundaries
-
-This is a focused portfolio demo backed by a public resume endpoint. It has no
-account system, private resume source, conversation database, or paid-model
-requirement. Model availability, rate limits, and the freshness of the public
-resume service can affect responses.
+Resume loading has a 10-second deadline and answers are capped at 2,048 tokens.
+The route declares a 60-second platform duration budget. These limits do not
+provide deployment-level rate limiting. Model availability, provider rate limits,
+and resume-service availability can affect responses.

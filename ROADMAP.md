@@ -3,13 +3,6 @@
 Updated 2026-10-26. Proposed portfolio improvements after Digits/MCP priorities.
 No recruiter-conversion or hiring-impact measurement is currently established.
 
-## Starting point
-
-Baseline: `8bc372481288139af75dcd366366aeb68334453b`, described in the
-[README](README.md). The app presents Lucas's public resume and streams answers
-using that published resume as context. The resume repository owns the facts;
-this app has no private candidate database or account system.
-
 Target user: a recruiter or collaborator checking a specific experience claim
 and deciding whether to start a conversation.
 
@@ -52,7 +45,7 @@ chat error without presenting old content as newly verified.
 
 Acceptance: a visitor can still find relevant source evidence when the model
 fails; retry does not duplicate their question; unavailable resume data does not
-produce a fabricated profile. Reuse the existing streaming and failure paths.
+produce a fabricated profile.
 
 ## First release and evidence
 
@@ -62,6 +55,5 @@ time to verify it, unsupported answers and whether they choose a next step.
 Establish that baseline before setting a conversion target. Do not collect
 conversation text or pasted job descriptions for analytics by default.
 
-Use the existing fixture-backed build and test runner for sourced/unsupported
-answers, source-version changes and provider failures. Keep content edits in
-`aranlucas/resume`; avoid creating a second editable resume in this repository.
+Cover sourced and unsupported answers, source-version changes and provider
+failures with synthetic resumes.

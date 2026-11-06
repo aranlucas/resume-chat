@@ -1,4 +1,4 @@
-import { getSystemPrompt } from "@/lib/resume";
+import { getSystemPrompt } from "./prompt";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import {
   convertToModelMessages,

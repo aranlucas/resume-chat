@@ -416,3 +416,23 @@ test.each([
     assert.deepEqual(providerBody?.messages.at(-1)?.content, lastContent);
   },
 );
+
+// SDK structural validation accepts strings that URL conversion cannot parse.
+test.each([
+  { type: "file", mediaType: "image/png", url: "not a URL" },
+  { type: "reasoning-file", mediaType: "image/png", url: "not a URL" },
+])("malformed file URLs return 400 before upstream access: %j", async (part) => {
+  const upstream = vi
+    .spyOn(globalThis, "fetch")
+    .mockRejectedValue(new Error("Unexpected upstream"));
+  const response = await POST(
+    request({
+      messages: [
+        { ...question, role: part.type === "reasoning-file" ? "assistant" : "user", parts: [part] },
+      ],
+    }),
+  );
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /conversation is invalid/);
+  assert.equal(upstream.mock.calls.length, 0);
+});

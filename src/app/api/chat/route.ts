@@ -6,7 +6,7 @@ import {
   streamText,
   toUIMessageStream,
   validateUIMessages,
-  type UIMessage,
+  type ModelMessage,
 } from "ai";
 
 // Free providers can take longer to start streaming during busy periods.
@@ -17,13 +17,14 @@ const UNAVAILABLE = "The assistant is temporarily unavailable. Please try again 
 const INVALID = "The conversation is invalid. Please start a new conversation.";
 
 export async function POST(req: Request) {
-  let messages: UIMessage[];
+  let messages: ModelMessage[];
 
   try {
-    messages = await validateUIMessages({
+    const uiMessages = await validateUIMessages({
       // oxlint-disable-next-line typescript/no-unsafe-member-access -- The SDK validates this untrusted input.
       messages: (await req.json()).messages,
     });
+    messages = await convertToModelMessages(uiMessages);
   } catch {
     return new Response(INVALID, { status: 400 });
   }
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: freellm("auto"),
     instructions,
-    messages: await convertToModelMessages(messages),
+    messages,
     abortSignal: req.signal,
     maxOutputTokens: 2_048,
   });

@@ -30,6 +30,18 @@ jobs:
         with:
           cache: true
           require-lockfile: true
+      - name: Demonstrate malformed-URL regression on the pre-fix route
+        run: |
+          cp src/app/api/chat/route.ts /tmp/fixed-chat-route.ts
+          trap 'cp /tmp/fixed-chat-route.ts src/app/api/chat/route.ts' EXIT
+          git show b637993:src/app/api/chat/route.ts > src/app/api/chat/route.ts
+          if pnpm exec vitest run test/app/api/chat/route.test.ts -t 'malformed file URLs return 400' > /tmp/pre-fix.log 2>&1; then
+            cat /tmp/pre-fix.log
+            echo "Regression unexpectedly passed on the defective route"
+            exit 1
+          fi
+          cat /tmp/pre-fix.log
+          grep -q '2 failed' /tmp/pre-fix.log
       - parallel:
           - name: Lint
             run: pnpm format:check && pnpm lint
@@ -42,3 +54,18 @@ jobs:
 
           - name: Build with synthetic resume
             run: pnpm build:test
+
+      - name: Install Chromium for deterministic browser journeys
+        run: pnpm exec e2e-web install chromium --with-deps
+      - name: Test chat and resume journeys on the fixture build
+        run: pnpm exec e2e run --reporter list,junit
+        env:
+          E2E_TELEMETRY_DISABLED: "1"
+      - name: Upload browser evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-evidence
+          path: .e2e/
+          include-hidden-files: true
+          if-no-files-found: warn

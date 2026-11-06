@@ -393,7 +393,6 @@ function Message({ message, isFirst, isStreaming }: MessageProps) {
     );
   }
 
-  // Until the first words arrive, the transcript shows <Thinking /> instead.
   if (!hasText(message)) {
     return null;
   }
@@ -405,7 +404,6 @@ function Message({ message, isFirst, isStreaming }: MessageProps) {
   );
 }
 
-/** A tiny resume whose lines get highlighted one by one while the answer is on its way. */
 function Thinking() {
   return (
     <div className="mbs-4 flex items-center gap-3 text-17px" role="status" aria-live="polite">

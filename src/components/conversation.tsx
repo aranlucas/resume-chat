@@ -18,9 +18,7 @@ export const Conversation = ({ className, ...props }: ComponentProps<typeof Stic
   />
 );
 
-export const ConversationContent = (props: ComponentProps<typeof StickToBottom.Content>) => (
-  <StickToBottom.Content {...props} />
-);
+export const ConversationContent = StickToBottom.Content;
 
 export const ConversationScrollButton = () => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();

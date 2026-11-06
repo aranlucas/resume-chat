@@ -4,15 +4,6 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/*
- * Palette: cool paper, navy ink, one cobalt accent.
- *   paper  #F4F6F9   page background
- *   sheet  #FFFFFF   raised surfaces (composer)
- *   ink    #1A2233   text
- *   slate  #5A6378   secondary text
- *   rule   #D8DDE6   hairlines
- *   cobalt #2A44D4   questions, focus, the one accent
- */
 :root {
   --paper: #f4f6f9;
   --sheet: #ffffff;
@@ -140,7 +131,6 @@
   }
 }
 
-/* Streaming caret, shown at the end of an answer while it arrives. */
 @keyframes caret {
   50% {
     opacity: 0;
@@ -165,7 +155,6 @@
   }
 }
 
-/* Loading state: a tiny resume page with a highlighter sweeping its lines. */
 .resume-sheet {
   display: inline-flex;
   flex-direction: column;
@@ -232,7 +221,6 @@
   }
 }
 
-/* Label shimmers slate → cobalt → slate and fades in when it changes. */
 .thinking-label {
   background: linear-gradient(
       90deg,

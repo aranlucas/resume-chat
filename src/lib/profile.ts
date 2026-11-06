@@ -10,8 +10,6 @@ interface Role {
 
 type Highlight = { note: string; question: string };
 
-// One-liners and suggested questions for the timeline, keyed by company or
-// school name in the resume. Entries without one still appear.
 const HIGHLIGHTS = new Map<string, Highlight>([
   [
     "DoorDash",
@@ -48,7 +46,6 @@ const year = (yearMonth: string) => yearMonth.slice(0, 4);
 const highlight = (name: string) =>
   HIGHLIGHTS.get(name) ?? { note: "", question: `What did Lucas do at ${name}?` };
 
-/** Fetch and project the public resume into the data the page displays. */
 export async function getProfile() {
   const resume = await getResume();
 
@@ -62,7 +59,6 @@ export async function getProfile() {
 
 export type Profile = Awaited<ReturnType<typeof getProfile>>;
 
-/** Full-time roles and education; internships are left off the timeline. */
 function toRoles(resume: JsonResume): Role[] {
   const jobs = resume.work
     .filter((job) => !/\bIntern$/.test(job.position))

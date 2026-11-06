@@ -77,10 +77,12 @@ test("an unavailable answer can be retried without duplicating the question", as
   await app.open("/");
   await screen.getByRole("textbox", "Your question").fill("What are his skills?");
   await screen.getByRole("button", "Ask", { exact: true }).tap();
-  await expect(screen.getByRole("log").getByRole("alert")).toContainText("temporarily unavailable");
+  await expect(browser.locator('[role="log"]').getByRole("alert")).toContainText(
+    "temporarily unavailable",
+  );
   await screen.getByRole("button", "Try again").tap();
   await expect(screen.getByText("Recovered answer.", { exact: true })).toBeVisible();
-  await expect(screen.getByRole("log").getByRole("alert")).toHaveCount(0);
+  await expect(browser.locator('[role="log"]').getByRole("alert")).toHaveCount(0);
   await expect(screen.getByText("What are his skills?", { exact: true })).toHaveCount(1);
   expect(attempts).toBe(2);
 });

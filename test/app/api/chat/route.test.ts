@@ -424,7 +424,7 @@ test.each([
 ])("malformed file URLs return 400 before upstream access: %j", async (part) => {
   const upstream = vi
     .spyOn(globalThis, "fetch")
-    .mockRejectedValue(new Error("Unexpected upstream"));
+    .mockResolvedValue(new Response("Public fixture resume."));
   const response = await POST(
     request({
       messages: [

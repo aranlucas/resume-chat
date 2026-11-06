@@ -45,7 +45,9 @@ test("question, follow-up and reset preserve the conversation boundary", async (
   await screen.getByRole("textbox", "Your question").fill("Tell me more.");
   await screen.getByRole("button", "Ask", { exact: true }).tap();
   await expect(screen.getByText("Synthetic answer 2.", { exact: true })).toBeVisible();
+  await expect(screen.getByText("Synthetic answer 1.", { exact: true })).toBeVisible();
   await screen.getByRole("button", "New conversation").tap();
+  await expect(screen.getByText("Synthetic answer 2.", { exact: true })).toHaveCount(0);
   await expect(screen.getByText("Synthetic answer 1.", { exact: true })).toHaveCount(0);
   await screen.getByRole("textbox", "Your question").fill("A fresh question.");
   await screen.getByRole("button", "Ask", { exact: true }).tap();

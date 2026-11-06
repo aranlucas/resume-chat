@@ -425,6 +425,7 @@ test.each([
   const upstream = vi
     .spyOn(globalThis, "fetch")
     .mockResolvedValue(new Response("Public fixture resume."));
+
   const response = await POST(
     request({
       messages: [
@@ -432,6 +433,7 @@ test.each([
       ],
     }),
   );
+
   assert.equal(response.status, 400);
   assert.match(await response.text(), /conversation is invalid/);
   assert.equal(upstream.mock.calls.length, 0);

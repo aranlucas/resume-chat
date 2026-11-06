@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       // oxlint-disable-next-line typescript/no-unsafe-member-access -- The SDK validates this untrusted input.
       messages: (await req.json()).messages,
     });
+
     messages = await convertToModelMessages(uiMessages);
   } catch {
     return new Response(INVALID, { status: 400 });

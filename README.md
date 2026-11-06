@@ -102,3 +102,14 @@ Resume loading has a 10-second deadline and answers are capped at 2,048 tokens.
 The route declares a 60-second platform duration budget. These limits do not
 provide deployment-level rate limiting. Model availability, provider rate limits,
 and resume-service availability can affect responses.
+
+## Deterministic browser regressions
+
+CI runs tester-army `e2e@0.23.0` with `@e2e-dev/web@0.15.5` against the
+synthetic production build (Node ^22.22.3 or >=24.8). It verifies chat
+follow-ups, conversation reset, error/retry without duplicate questions, and
+source-resume navigation. Browser-level API fixtures avoid live model calls;
+the existing route suite separately verifies the real SDK/provider adapter.
+No agent steps or model credentials are used. Failure reports, app logs and
+browser traces are uploaded as `e2e-evidence`. Tests and builds for this audit
+run only in CI. See [the audit](docs/reliability-audit.md) for scope and evidence.

@@ -81,3 +81,12 @@ CI remain gates. `.e2e/` reports/logs/traces upload even on failure.
 Dependencies were selected because the user requested tester-army/e2e; npm metadata
 confirms their repository identity, engine requirement and compatible peer range.
 Installations used `--ignore-scripts`; no local test/build hooks were executed.
+
+## Independent review
+
+Read-only independent reviewer completed at `5825942` with no remaining concrete
+worthwhile findings after challenging F1, runtime boundaries and browser coverage.
+Three objections were fixed: unique fixture response IDs with retained-history
+assertions; a successful mocked resume fetch so baseline reaches the actual URL
+conversion failure; and full checkout history for reliable baseline access.
+No local tests/builds were run by either worker. CI result is pending on PR #73.

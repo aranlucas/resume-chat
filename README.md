@@ -99,6 +99,8 @@ message structures return 400 before upstream access. Resume-loading failures
 return 503; provider failures produce a generic, retryable error in the stream.
 
 Resume loading has a 10-second deadline and answers are capped at 2,048 tokens.
+The chat labels an answer that stops at that cap as possibly cut off, and offers
+a retry when a response finishes without any answer text.
 The route declares a 60-second platform duration budget. These limits do not
 provide deployment-level rate limiting. Model availability, provider rate limits,
 and resume-service availability can affect responses.
@@ -107,9 +109,10 @@ and resume-service availability can affect responses.
 
 CI runs tester-army `e2e@0.23.0` with `@e2e-dev/web@0.15.5` against the
 synthetic production build (Node ^22.22.3 or >=24.8). It verifies chat
-follow-ups, conversation reset, error/retry without duplicate questions, and
-source-resume navigation. Browser-level API fixtures avoid live model calls;
-the existing route suite separately verifies the real SDK/provider adapter.
+follow-ups, conversation reset, error and empty-answer retry without duplicate
+questions, and source-resume navigation. Browser-level API fixtures avoid live
+model calls; the existing route suite separately verifies the real SDK/provider
+adapter.
 No agent steps or model credentials are used. Failure reports, app logs and
 browser traces are uploaded as `e2e-evidence`. Tests and builds for this audit
 run only in CI. See [the audit](docs/reliability-audit.md) for scope and evidence.

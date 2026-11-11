@@ -19,7 +19,16 @@ const loadMessageResponse = () =>
 
 const MessageResponse = dynamic(loadMessageResponse);
 
-const createChat = () => new Chat({ transport: new DefaultChatTransport({ api: "/api/chat" }) });
+// A finish reason of "length" means the provider stopped at the route's output-token cap.
+const createChat = (onCutOff: (messageId: string) => void) =>
+  new Chat({
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    onFinish: ({ message, finishReason, isAbort, isError }) => {
+      if (finishReason === "length" && !isAbort && !isError) {
+        onCutOff(message.id);
+      }
+    },
+  });
 
 type ProfileChatProps = { profile: Profile };
 
@@ -47,14 +56,20 @@ type TranscriptProps = {
   messages: UIMessage[];
   status: string;
   error: Error | undefined;
+  cutOffId: string | undefined;
   onRetry: () => void;
 };
+
+type RecoveryProps = { onRetry: () => void; children: string };
 
 type MessageProps = { message: UIMessage; isFirst: boolean; isStreaming: boolean };
 
 export function ProfileChat({ profile }: ProfileChatProps) {
+  // The id of the latest answer that ended at the output-token limit.
+  const [cutOffId, setCutOffId] = useState<string>();
+
   // A new Chat per conversation, so a stopped answer can't stream into the next one.
-  const [chat, setChat] = useState(createChat);
+  const [chat, setChat] = useState(() => createChat(setCutOffId));
 
   const { messages, status, error, sendMessage, stop, regenerate } = useChat({
     chat,
@@ -101,7 +116,7 @@ export function ProfileChat({ profile }: ProfileChatProps) {
                 type="button"
                 onClick={() => {
                   stop().catch(console.error.bind(console, "Failed to stop the response"));
-                  setChat(createChat());
+                  setChat(createChat(setCutOffId));
                   inputRef.current?.focus();
                 }}
                 className="rounded-md px-3 py-2 text-sm text-slate hover:text-ink"
@@ -121,6 +136,7 @@ export function ProfileChat({ profile }: ProfileChatProps) {
                 messages={messages}
                 status={status}
                 error={error}
+                cutOffId={cutOffId}
                 onRetry={() => void regenerate()}
               />
             </ConversationContent>
@@ -336,12 +352,16 @@ function Starters({ onAsk }: StartersProps) {
   );
 }
 
-function Transcript({ messages, status, error, onRetry }: TranscriptProps) {
+function Transcript({ messages, status, error, cutOffId, onRetry }: TranscriptProps) {
   const last = messages.at(-1);
+  const isLoading = status === "submitted" || status === "streaming";
+  const isAnswered = last?.role === "assistant" && hasText(last);
 
-  const isWaiting =
-    (status === "submitted" || status === "streaming") &&
-    !(last?.role === "assistant" && hasText(last));
+  const isWaiting = isLoading && !isAnswered;
+
+  // A response can finish without visible text: an empty provider reply, reasoning
+  // that used the whole token budget, or a stop before the first word.
+  const isUnanswered = status === "ready" && !isAnswered;
 
   return (
     <div className="flex flex-col pbs-4 pbe-8">
@@ -357,17 +377,32 @@ function Transcript({ messages, status, error, onRetry }: TranscriptProps) {
       {isWaiting && <Thinking />}
 
       {error && (
-        <div className="mbs-4 text-17px text-danger" role="alert">
-          {error.message || "The answer didn't come through."}{" "}
-          <button type="button" onClick={onRetry} className="font-semibold underline">
-            Try again
-          </button>
-          {" or "}
-          <a href="/resume" target="_blank" rel="noopener noreferrer" className="underline">
-            read the resume
-          </a>
-        </div>
+        <Recovery onRetry={onRetry}>{error.message || "The answer didn't come through."}</Recovery>
       )}
+
+      {isUnanswered && <Recovery onRetry={onRetry}>No answer came through.</Recovery>}
+
+      {status === "ready" && isAnswered && last.id === cutOffId && (
+        <p className="mbs-4 text-sm text-slate" role="status">
+          This answer reached the length limit and may be cut off. Ask a narrower follow-up for the
+          rest.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Recovery({ onRetry, children }: RecoveryProps) {
+  return (
+    <div className="mbs-4 text-17px text-danger" role="alert">
+      {children}{" "}
+      <button type="button" onClick={onRetry} className="font-semibold underline">
+        Try again
+      </button>
+      {" or "}
+      <a href="/resume" target="_blank" rel="noopener noreferrer" className="underline">
+        read the resume
+      </a>
     </div>
   );
 }

@@ -87,6 +87,37 @@ test("an unavailable answer can be retried without duplicating the question", as
   expect(attempts).toBe(2);
 });
 
+test("an answer that finishes without text can be retried without duplicating the question", async ({
+  app,
+  browser,
+  screen,
+}) => {
+  let attempts = 0;
+  await browser.route("**/api/chat", async (route) => {
+    const history = History.parse(JSON.parse(route.request.postData ?? "{}"));
+    expect(history.messages.map((message) => message.role)).toEqual(["user"]);
+    attempts += 1;
+    await route.fulfill({
+      headers,
+      body:
+        attempts === 1
+          ? 'data: {"type":"start"}\n\ndata: {"type":"finish","finishReason":"stop"}\n\ndata: [DONE]\n\n'
+          : answer("Recovered answer."),
+    });
+  });
+  await app.open("/");
+  await screen.getByRole("textbox", "Your question").fill("What are his skills?");
+  await screen.getByRole("button", "Ask", { exact: true }).tap();
+  await expect(browser.locator('[role="log"]').getByRole("alert")).toContainText(
+    "No answer came through",
+  );
+  await screen.getByRole("button", "Try again").tap();
+  await expect(screen.getByText("Recovered answer.", { exact: true })).toBeVisible();
+  await expect(browser.locator('[role="log"]').getByRole("alert")).toHaveCount(0);
+  await expect(screen.getByText("What are his skills?", { exact: true })).toHaveCount(1);
+  expect(attempts).toBe(2);
+});
+
 test("the source resume can be read and returns to the chat", async ({ app, screen, browser }) => {
   await app.open("/resume");
   await expect(screen.getByRole("heading", "Fictional Candidate")).toBeVisible();

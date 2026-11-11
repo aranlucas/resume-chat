@@ -438,3 +438,32 @@ test.each([
   assert.match(await response.text(), /conversation is invalid/);
   assert.equal(upstream.mock.calls.length, 0);
 });
+
+// The chat UI labels an answer as cut off only when the stream reports this reason.
+test("an answer stopped at the output-token cap reports a length finish to the client", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    (input: RequestInfo | URL, init?: RequestInit) => {
+      const upstreamRequest = new Request(input, init);
+
+      if (upstreamRequest.url.endsWith("/resume.md")) {
+        return Promise.resolve(new Response("Public fixture resume."));
+      }
+
+      return Promise.resolve(
+        new Response(
+          'data: {"choices":[{"delta":{"role":"assistant","content":"He led the"}}]}\n\n' +
+            'data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n\n' +
+            "data: [DONE]\n\n",
+          { headers: { "Content-Type": "text/event-stream" } },
+        ),
+      );
+    },
+  );
+
+  const response = await POST(request({ messages: [question] }));
+  const stream = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(stream, /He led the/);
+  assert.match(stream, /"finishReason":"length"/);
+});
